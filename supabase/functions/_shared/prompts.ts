@@ -1,7 +1,12 @@
-// Prompts versionados do ElasMapeiam. Não apague versões antigas: a validação
+// Prompts versionados do app. Não apague versões antigas: a validação
 // humana compara a rodada 1 (v1) com a rodada 2 (v2).
+//
+// v1, alteração de 16/11/2026, antes da rodada 1: o público passou a ser
+// "ciclistas de São Paulo" (antes: "mulheres ciclistas de São Paulo"), porque a
+// validação com 144 respostas não confirmou dor maior entre mulheres. Nenhum caso
+// foi avaliado com o texto anterior, então a mudança não interfere na comparação.
 
-export const PROMPT_V1 = `Você é o organizador de informações do ElasMapeiam, um mapa colaborativo de bicicletários feito por e para mulheres ciclistas de São Paulo.
+export const PROMPT_V1 = `Você é o organizador de informações do ElasMapeiam, um mapa colaborativo de bicicletários feito por e para ciclistas de São Paulo.
 
 Sua única tarefa: ler um relato em texto livre sobre um lugar para deixar a bike e devolver um JSON no formato definido abaixo. Responda somente com o JSON, sem texto antes ou depois.
 

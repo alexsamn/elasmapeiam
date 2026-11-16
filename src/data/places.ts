@@ -1,5 +1,6 @@
 import { describeCriteria } from "@/design-system/elasmapeiam-library-4342f4";
 import { mockPlaces, type Place } from "./mock-places";
+import { APP_NAME } from "@/config/app";
 
 /**
  * Endereço e chave pública (publishable) do Supabase. Não são segredos: a proteção
@@ -26,18 +27,29 @@ interface LugarRow {
   ultima_confirmacao: string | null;
 }
 
-const dateFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" });
+const dateFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" });
+
+const closedLabels = { fechado: "Fechado", quebrado: "Quebrado", nao_existe_mais: "Não existe mais" } as const;
 
 export function rowToPlace(row: LugarRow): Place {
   const isShop = row.tipo === "oficina";
   const type = isShop ? "Oficina" : "Bicicletário";
   const { confirmed, attention } = describeCriteria(row.criterios);
-  const closed = row.status === "fechado" || row.status === "quebrado";
-  const kind = isShop ? "shop" : closed || row.confirmacoes <= 0 || row.status === "desconhecido" ? "unconfirmed" : "safe";
+  const closed = row.status === "fechado" || row.status === "quebrado" || row.status === "nao_existe_mais";
+  const working = row.status === "funcionando" && row.confirmacoes > 0;
+  const kind = isShop ? "shop" : working ? "safe" : "unconfirmed";
+  // Status do bicicletário no topo do card: Funcionando / Fechado / Quebrado / Não existe mais / Não confirmado.
+  const status = isShop
+    ? {}
+    : closed
+      ? { status: "closed" as const, statusLabel: closedLabels[row.status as keyof typeof closedLabels] }
+      : working
+        ? { status: "safe" as const, statusLabel: "Funcionando" }
+        : { status: "unconfirmed" as const, statusLabel: "Não confirmado" };
   return {
     id: row.id,
     kind,
-    ...(closed ? { status: "closed" as const, statusLabel: row.status === "quebrado" ? "Quebrado" : "Fechado" } : {}),
+    ...status,
     title: row.nome,
     subtitle: `${type} · ${row.bairro}`,
     type,
@@ -53,9 +65,16 @@ export function rowToPlace(row: LugarRow): Place {
 
 export interface PlacesResult { places: Place[]; source: "database" | "demo" }
 
-/** Lugares publicados. Se o banco não estiver configurado ou falhar, usa os dados de demonstração. */
+/** Oficinas ficam fora do mapa por enquanto (validação de 16/11). */
+const onlyParking = (places: Place[]) => places.filter(p => p.kind !== "shop");
+
+/** Dados de demonstração com o mesmo rótulo de status do banco. */
+const demoPlaces = (): Place[] =>
+  onlyParking(mockPlaces).map(p => (p.statusLabel || p.status ? p : { ...p, statusLabel: p.kind === "safe" ? "Funcionando" : "Não confirmado" }));
+
+/** Bicicletários publicados. Se o banco não estiver configurado ou falhar, usa os dados de demonstração. */
 export async function fetchPlaces(): Promise<PlacesResult> {
-  if (!backendConfigured) return { places: mockPlaces, source: "demo" };
+  if (!backendConfigured) return { places: demoPlaces(), source: "demo" };
   try {
     const select = "id,nome,tipo,bairro,endereco,lat,lng,criterios,status,confirmacoes,ultima_confirmacao";
     const res = await fetch(`${supabaseUrl}/rest/v1/lugares?select=${select}&status=neq.nao_existe_mais&order=nome`, {
@@ -64,10 +83,10 @@ export async function fetchPlaces(): Promise<PlacesResult> {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rows = (await res.json()) as LugarRow[];
-    return { places: rows.map(rowToPlace), source: "database" };
+    return { places: onlyParking(rows.map(rowToPlace)), source: "database" };
   } catch (error) {
-    console.error("[ElasMapeiam] usando dados de demonstração:", error);
-    return { places: mockPlaces, source: "demo" };
+    console.error(`[${APP_NAME}] usando dados de demonstração:`, error);
+    return { places: demoPlaces(), source: "demo" };
   }
 }
 

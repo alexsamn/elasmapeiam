@@ -22,7 +22,7 @@ export interface PlaceCardProps extends HTMLAttributes<HTMLDivElement> {
   attention?:readonly string[];
   address?:string;
   confirmations?:number;
-  /** Formatted date of the latest confirmation (ex.: "12/11/2026"). */
+  /** Formatted date of the latest confirmation (ex.: "12/11"), shown under the title. */
   lastConfirmed?:string;
   onRoute?:()=>void;
   onShare?:()=>void;
@@ -38,10 +38,14 @@ function labelsFor(values:readonly string[]):string[]{
   return out;
 }
 
-function confirmationText(confirmations:number,lastConfirmed?:string){
+function confirmationText(confirmations:number){
   if(confirmations<=0) return "Ainda sem confirmações";
-  const count=confirmations===1?"Confirmado por 1 ciclista":`Confirmado por ${confirmations} ciclistas`;
-  return lastConfirmed?`${count} · última em ${lastConfirmed}`:count;
+  return confirmations===1?"Confirmado por 1 ciclista":`Confirmado por ${confirmations} ciclistas`;
+}
+
+function lastConfirmedText(confirmations:number,lastConfirmed?:string){
+  if(lastConfirmed) return `Última confirmação em ${lastConfirmed}`;
+  return confirmations<=0?"Ainda sem confirmação":null;
 }
 
 /** Controlled place card; use one expanded ID in the parent and toggleExpanded. */
@@ -49,6 +53,7 @@ export const PlaceCard=forwardRef<HTMLDivElement,PlaceCardProps>(({title,subtitl
   const id=useId();
   const confirmedLabels=labelsFor(criteria);
   const attentionLabels=labelsFor(attention);
+  const lastLine=lastConfirmedText(confirmations,lastConfirmed);
   return <Card ref={ref} variant="default" className={cn(className,"h-auto min-h-0 max-h-none min-w-0 overflow-visible break-words bg-branco border-borda p-5 sm:p-5",expanded&&!loading&&"border-2 border-lilas")} aria-busy={loading||undefined} {...props} onClick={event=>{
     onClick?.(event);
     if(event.defaultPrevented||expanded||loading) return;
@@ -61,7 +66,7 @@ export const PlaceCard=forwardRef<HTMLDivElement,PlaceCardProps>(({title,subtitl
     </div>:<>
       <div className="flex items-start gap-3">
         <Button variant="secondary" aria-expanded={expanded} aria-controls={id} onClick={()=>onExpandedChange(!expanded)} className="h-auto! min-h-11 min-w-0 flex-1 shrink items-start justify-start whitespace-normal rounded-input border-0 bg-transparent p-0 text-left text-foreground hover:bg-transparent">
-          <span className="block min-w-0"><span className="block break-words font-sans text-title leading-body font-semibold">{title}</span><span className="mt-1 block font-sans text-subtitle leading-subtitle font-regular text-muted-foreground">{subtitle}</span></span>
+          <span className="block min-w-0"><span className="block break-words font-sans text-title leading-body font-semibold">{title}</span><span className="mt-1 block font-sans text-subtitle leading-subtitle font-regular text-muted-foreground">{subtitle}</span>{lastLine&&<span className="mt-1 block font-sans text-subtitle leading-subtitle font-medium text-foreground">{lastLine}</span>}</span>
         </Button>
         <StatusChip variant={status} className="shrink-0">{statusLabel}</StatusChip>
       </div>
@@ -70,7 +75,7 @@ export const PlaceCard=forwardRef<HTMLDivElement,PlaceCardProps>(({title,subtitl
         {attentionLabels.length>0&&<section><h3 className="mb-3 font-sans text-body leading-body font-semibold">Pontos de atenção</h3><ul className="flex flex-wrap gap-2">{attentionLabels.map(label=><li key={label} className="inline-flex min-h-8 max-w-full items-center gap-2 rounded-pill border border-borda bg-branco px-3 font-sans text-subtitle leading-subtitle font-regular"><Icon name="TriangleAlert" className="size-4 shrink-0"/><span className="min-w-0 break-words">{label}</span></li>)}</ul></section>}
         {address&&<section><h3 className="mb-2 font-sans text-body leading-body font-semibold">Endereço</h3><p className="font-sans text-body leading-body font-regular">{address}</p></section>}
         <div className="flex items-center gap-3">
-          <p className="min-w-0 flex-1 break-words font-sans text-subtitle leading-subtitle font-regular text-muted-foreground">{confirmationText(confirmations,lastConfirmed)}</p>
+          <p className="min-w-0 flex-1 break-words font-sans text-subtitle leading-subtitle font-regular text-muted-foreground">{confirmationText(confirmations)}</p>
           <div className="flex shrink-0 flex-nowrap gap-2"><Button variant="icon" aria-label="Rota" title="Rota" onClick={onRoute} disabled={!onRoute}><Icon name="Navigation"/></Button><Button variant="icon" iconTone="lilac" aria-label="Compartilhar" title="Compartilhar" onClick={onShare} disabled={!onShare}><Icon name="Share2"/></Button></div>
         </div>
         {children}
