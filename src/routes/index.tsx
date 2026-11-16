@@ -1,7 +1,8 @@
-import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { SearchBar, FilterChip, FilterChipRow, MapControls, BottomSheet, PlaceCard, Skeleton, InfoBanner, EmptyState, Toast, FixedNotice } from "@/design-system/elasmapeiam-library-4342f4";
-import { mockPlaces, PINHEIROS_CENTER, statusForKind, placeSubtitle, distanceMeters } from "@/data/mock-places";
+import { PINHEIROS_CENTER, statusForKind, placeSubtitle, distanceMeters, type Place } from "@/data/mock-places";
+import { fetchPlaces } from "@/data/places";
 import { directionsUrl, sharePlace, type ShareablePlace } from "@/lib/place-actions";
 
 const PlacesMap = lazy(() => import("@/components/map/PlacesMap"));
@@ -35,6 +36,9 @@ function Index() {
   const [user, setUser] = useState<[number, number] | null>(null);
   const [alertInfo, setAlertInfo] = useState(false);
   const [toast, setToast] = useState<{ message: string; key: number } | null>(null);
+  const [allPlaces, setAllPlaces] = useState<Place[]>([]);
+  const navigate = useNavigate();
+  const goContribute = () => void navigate({ to: "/contribuir" });
   function notify(message: string) { setToast(previous => ({ message, key: (previous?.key ?? 0) + 1 })); }
   function routeTo(place: ShareablePlace) { window.open(directionsUrl(place), "_blank", "noopener,noreferrer"); }
   async function share(place: ShareablePlace) {
@@ -60,12 +64,12 @@ function Index() {
   }, []);
   useEffect(() => { const t = setTimeout(() => sheetRef.current && setSheetH(Math.max(0, (sheetRef.current.offsetParent?.getBoundingClientRect().bottom ?? 0) - sheetRef.current.getBoundingClientRect().top)), 350); return () => clearTimeout(t); }, [snap]);
 
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 600); return () => clearTimeout(t); }, []);
+  useEffect(() => { let alive = true; fetchPlaces().then(r => { if (!alive) return; setAllPlaces(r.places); setLoading(false); }); return () => { alive = false; }; }, []);
 
   const places = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("pt-BR");
-    return mockPlaces.filter(p => (active.some(f => kindsFor[f].includes(p.kind))) && (!q || `${p.title} ${p.subtitle} ${p.address}`.toLocaleLowerCase("pt-BR").includes(q)));
-  }, [active, query]);
+    return allPlaces.filter(p => (active.some(f => kindsFor[f].includes(p.kind))) && (!q || `${p.title} ${p.subtitle} ${p.address}`.toLocaleLowerCase("pt-BR").includes(q)));
+  }, [allPlaces, active, query]);
 
   // Ordena pela distância até a usuária (se ela liberou a localização) ou até o centro de Pinheiros.
   const origin = user ?? PINHEIROS_CENTER;
@@ -93,9 +97,9 @@ function Index() {
           <EmptyState title="Nada por aqui" action={<></>}>Nenhum lugar corresponde aos filtros. Tente mudar a busca ou os filtros.</EmptyState>
         ) : (
           ordered.map(p => (
-            <PlaceCard key={p.id} ref={el => { if (el) cardRefs.current.set(p.id, el); else cardRefs.current.delete(p.id); }} title={p.title} subtitle={placeSubtitle(p, user)} status={statusForKind[p.kind]} address={p.address}
-              criteria={p.criteria}
-              {...(p.contributor ? { contributor: p.contributor } : {})} confirmations={p.confirmations}
+            <PlaceCard key={p.id} ref={el => { if (el) cardRefs.current.set(p.id, el); else cardRefs.current.delete(p.id); }} title={p.title} subtitle={placeSubtitle(p, user)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})} address={p.address}
+              criteria={p.criteria} attention={p.attention ?? []}
+              confirmations={p.confirmations} {...(p.lastConfirmed ? { lastConfirmed: p.lastConfirmed } : {})}
               onRoute={() => routeTo(p)} onShare={() => void share(p)} onDetails={() => notify("Em breve: página de detalhes")}
               expanded={p.id === selectedId} onExpandedChange={open => (open ? select(p.id) : setSelectedId(null))} />
           ))
@@ -132,7 +136,7 @@ function Index() {
           <nav aria-label="Navegação principal" className="flex flex-col gap-1">
             {nav.map(n => (
               <button key={n.label} type="button" aria-current={n.active ? "page" : undefined}
-                onClick={n.active ? undefined : () => notify("Em breve")}
+                onClick={n.active ? undefined : n.label === "Contribuir" ? goContribute : () => notify("Em breve")}
                 className={`flex h-11 items-center rounded-input px-3 text-left font-sans text-body leading-body font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-preto ${n.active ? "bg-fundo" : "hover:bg-fundo"}`}>{n.label}</button>
             ))}
           </nav>
@@ -145,7 +149,7 @@ function Index() {
             {chips}
             {banners}
           </div>
-          <MapControls className="absolute bottom-6 right-6 z-10" onLocate={locate} onAdd={() => notify("Em breve: indicar um lugar")} locating={locating} />
+          <MapControls className="absolute bottom-6 right-6 z-10" onLocate={locate} onAdd={goContribute} locating={locating} />
         </main>
         <section aria-label={label} className="flex w-100 shrink-0 flex-col overflow-y-auto border-l border-borda bg-fundo px-4 py-6">
           <header className="mb-5 flex flex-wrap items-center justify-between gap-2"><h2 className="font-sans text-title leading-body font-semibold">{label}</h2><span className="font-sans text-subtitle leading-subtitle text-muted-foreground">{sortLabel}</span></header>
@@ -188,7 +192,7 @@ function Index() {
         )}
       </div>
 
-      <MapControls className={`absolute right-4 z-10 transition-all ${snap === "full" ? "hidden" : ""}`} style={{ bottom: snap === "half" ? "calc(50% + 16px)" : "136px" }} onLocate={locate} onAdd={() => notify("Em breve: indicar um lugar")} locating={locating} />
+      <MapControls className={`absolute right-4 z-10 transition-all ${snap === "full" ? "hidden" : ""}`} style={{ bottom: snap === "half" ? "calc(50% + 16px)" : "136px" }} onLocate={locate} onAdd={goContribute} locating={locating} />
 
       <BottomSheet ref={sheetRef} placement="static" snap={snap} onSnapChange={setSnap} label={label} sortLabel={sortLabel} className="z-20 md:mx-auto md:max-w-120">
         <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
