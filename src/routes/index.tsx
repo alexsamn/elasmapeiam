@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { SearchBar, FilterChip, FilterChipRow, MapControls, BottomSheet, PlaceCard, Skeleton, InfoBanner, EmptyState, Toast, FixedNotice } from "@/design-system/elasmapeiam-library-4342f4";
 import { PINHEIROS_CENTER, statusForKind, placeSubtitle, distanceMeters, type Place } from "@/data/mock-places";
 import { fetchPlaces } from "@/data/places";
+import { APP_DESCRIPTION, APP_NAME, pageTitle } from "@/config/app";
 import { directionsUrl, sharePlace, type ShareablePlace } from "@/lib/place-actions";
 
 const PlacesMap = lazy(() => import("@/components/map/PlacesMap"));
@@ -10,10 +11,10 @@ const PlacesMap = lazy(() => import("@/components/map/PlacesMap"));
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Mapa · Pedal SP" },
-      { name: "description", content: "Encontre bicicletários seguros e oficinas indicadas por ciclistas em Pinheiros e Vila Madalena." },
-      { property: "og:title", content: "Mapa · Pedal SP" },
-      { property: "og:description", content: "Bicicletários seguros e oficinas indicadas por ciclistas em São Paulo." },
+      { title: pageTitle("Mapa") },
+      { name: "description", content: APP_DESCRIPTION },
+      { property: "og:title", content: pageTitle("Mapa") },
+      { property: "og:description", content: APP_DESCRIPTION },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -21,11 +22,13 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Filter = "parking" | "shop";
-const kindsFor: Record<Filter, string[]> = { parking: ["safe", "unconfirmed"], shop: ["shop"] };
+// Oficinas saíram do mapa (16/11): a validação não confirmou a dor. O filtro fica como "Em breve".
+type Filter = "parking";
+const kindsFor: Record<Filter, string[]> = { parking: ["safe", "unconfirmed"] };
 
 function Index() {
-  const [active, setActive] = useState<Filter[]>(["parking", "shop"]);
+  const [active, setActive] = useState<Filter[]>(["parking"]);
+  const [shopInfo, setShopInfo] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [snap, setSnap] = useState<"peek" | "half" | "full">("peek");
   const [loading, setLoading] = useState(true);
@@ -116,13 +119,14 @@ function Index() {
   );
   const toastEl = toast && <Toast key={toast.key} open onOpenChange={open => { if (!open) setToast(null); }}>{toast.message}</Toast>;
   const banners = (<>
+    {shopInfo && <InfoBanner title="Oficinas chegam em breve" onDismiss={() => setShopInfo(false)}>Por enquanto o mapa mostra só bicicletários.</InfoBanner>}
     {alertInfo && <InfoBanner title="Alertas de roubo chegam em breve" onDismiss={() => setAlertInfo(false)}>Em breve você verá áreas com relatos de roubo de bicicletas.</InfoBanner>}
     {geoDenied && <InfoBanner title="Não conseguimos sua localização" onDismiss={() => setGeoDenied(false)}>Mostrando Pinheiros. Libere a localização no navegador para ver lugares perto de você.</InfoBanner>}
   </>);
   const chips = (
     <FilterChipRow aria-label="Filtrar lugares" className={desktop ? "px-0" : undefined}>
       <FilterChip surface="map" icon="Bike" selected={active.includes("parking")} onSelectedChange={on => setActive(a => (on ? [...a, "parking"] : a.filter(k => k !== "parking")))}>Bicicletários</FilterChip>
-      <FilterChip surface="map" icon="Wrench" selected={active.includes("shop")} onSelectedChange={on => setActive(a => (on ? [...a, "shop"] : a.filter(k => k !== "shop")))}>Oficinas</FilterChip>
+      <FilterChip surface="map" icon="Wrench" selected={false} onSelectedChange={() => setShopInfo(true)}>Oficinas</FilterChip>
       <FilterChip surface="map" variant="alert" selected={false} onSelectedChange={() => setAlertInfo(true)}>Alertas</FilterChip>
     </FilterChipRow>
   );
@@ -132,7 +136,7 @@ function Index() {
     return (
       <div className="flex h-dvh w-full overflow-hidden bg-fundo text-foreground">
         <aside className="flex w-60 shrink-0 flex-col gap-6 border-r border-borda bg-branco p-6">
-          <p className="font-sans text-title leading-body font-semibold">ElasMapeiam</p>
+          <p className="font-sans text-title leading-body font-semibold">{APP_NAME}</p>
           <nav aria-label="Navegação principal" className="flex flex-col gap-1">
             {nav.map(n => (
               <button key={n.label} type="button" aria-current={n.active ? "page" : undefined}
@@ -172,10 +176,17 @@ function Index() {
         <div className="px-4"><SearchBar value={query} onChange={e => setQuery(e.target.value)} /></div>
         <FilterChipRow aria-label="Filtrar lugares">
           <FilterChip surface="map" icon="Bike" selected={active.includes("parking")} onSelectedChange={on => setActive(a => (on ? [...a, "parking"] : a.filter(k => k !== "parking")))}>Bicicletários</FilterChip>
-          <FilterChip surface="map" icon="Wrench" selected={active.includes("shop")} onSelectedChange={on => setActive(a => (on ? [...a, "shop"] : a.filter(k => k !== "shop")))}>Oficinas</FilterChip>
+          <FilterChip surface="map" icon="Wrench" selected={false} onSelectedChange={() => setShopInfo(true)}>Oficinas</FilterChip>
           <FilterChip surface="map" variant="alert" selected={false} onSelectedChange={() => setAlertInfo(true)}>Alertas</FilterChip>
         </FilterChipRow>
         <p className="mx-4 self-start rounded-pill border border-borda bg-branco px-3 py-1 font-sans text-chip leading-chip text-foreground">Demonstração · lugares e indicações fictícios</p>
+        {shopInfo && (
+          <div className="px-4">
+            <InfoBanner title="Oficinas chegam em breve" onDismiss={() => setShopInfo(false)}>
+              Por enquanto o mapa mostra só bicicletários.
+            </InfoBanner>
+          </div>
+        )}
         {alertInfo && (
           <div className="px-4">
             <InfoBanner title="Alertas de roubo chegam em breve" onDismiss={() => setAlertInfo(false)}>

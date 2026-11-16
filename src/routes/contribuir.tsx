@@ -3,11 +3,12 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 import { Button, FixedNotice, Input, Textarea, Toast, Icon } from "@/design-system/elasmapeiam-library-4342f4";
 import type { Place } from "@/data/mock-places";
 import { fetchPlaces, sendReport } from "@/data/places";
+import { pageTitle } from "@/config/app";
 
 export const Route = createFileRoute("/contribuir")({
   head: () => ({
     meta: [
-      { title: "Contribuir · ElasMapeiam" },
+      { title: pageTitle("Contribuir") },
       { name: "description", content: "Conte como foi deixar a bike num bicicletário de São Paulo." },
     ],
   }),

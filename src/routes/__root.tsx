@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import { Button, EmptyState, ErrorState } from "@/design-system/elasmapeiam-library-4342f4";
+import { APP_DESCRIPTION, APP_NAME, APP_THEME_COLOR } from "@/config/app";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -53,16 +54,16 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
-    // Replace these placeholders with the app's name and description when first building the app.
-    // Each content route, / included, must still set its own head(). Never add og:image or
+    // Nome e descrição vêm de src/config/app.ts. Each content route, / included, must still set its own head(). Never add og:image or
     // twitter:image here: every page without its own would inherit the root's preview image.
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Pedal SP" },
-      { name: "description", content: "App para ciclistas em São Paulo." },
-      { property: "og:title", content: "Pedal SP" },
-      { property: "og:description", content: "App para ciclistas em São Paulo." },
+      { title: APP_NAME },
+      { name: "description", content: APP_DESCRIPTION },
+      { name: "theme-color", content: APP_THEME_COLOR },
+      { property: "og:title", content: APP_NAME },
+      { property: "og:description", content: APP_DESCRIPTION },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -75,6 +76,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,

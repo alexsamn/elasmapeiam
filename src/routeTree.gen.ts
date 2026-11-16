@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContribuirRouteImport } from './routes/contribuir'
+import { Route as ManifestDotwebmanifestRouteImport } from './routes/manifest[.]webmanifest'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const ContribuirRoute = ContribuirRouteImport.update({
   path: '/contribuir',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManifestDotwebmanifestRoute = ManifestDotwebmanifestRouteImport.update({
+  id: '/manifest.webmanifest',
+  path: '/manifest.webmanifest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/contribuir': typeof ContribuirRoute
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contribuir': typeof ContribuirRoute
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/contribuir': typeof ContribuirRoute
+  '/manifest.webmanifest': typeof ManifestDotwebmanifestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/contribuir'
+  fullPaths: '/' | '/contribuir' | '/manifest.webmanifest'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/contribuir'
-  id: '__root__' | '/' | '/contribuir'
+  to: '/' | '/contribuir' | '/manifest.webmanifest'
+  id: '__root__' | '/' | '/contribuir' | '/manifest.webmanifest'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContribuirRoute: typeof ContribuirRoute
+  ManifestDotwebmanifestRoute: typeof ManifestDotwebmanifestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContribuirRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manifest.webmanifest': {
+      id: '/manifest.webmanifest'
+      path: '/manifest.webmanifest'
+      fullPath: '/manifest.webmanifest'
+      preLoaderRoute: typeof ManifestDotwebmanifestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContribuirRoute: ContribuirRoute,
+  ManifestDotwebmanifestRoute: ManifestDotwebmanifestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
