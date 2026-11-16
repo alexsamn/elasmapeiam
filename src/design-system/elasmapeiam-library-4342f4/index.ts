@@ -13,7 +13,7 @@ export { Alert, type AlertProps } from "./components/ui/alert";
 export { Tabs, type TabsProps, type TabItem } from "./components/ui/tabs";
 export { Icon, iconSet, type IconProps, type IconName } from "./components/ui/icon";
 export { cn } from "./lib/utils";
-export { criteria, findCriterion, resolveCriteria, type Criterion, type CriterionId } from "./lib/criteria";
+export { criteria, findCriterion, resolveCriteria, describeCriteria, type Criterion, type CriterionId } from "./lib/criteria";
 
 export { StatusChip, type StatusChipProps } from "./components/ui/status-chip";
 export { FilterChip, FilterChipRow, type FilterChipProps, type FilterChipRowProps } from "./components/ui/filter-chip";
