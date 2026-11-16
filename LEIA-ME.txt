@@ -1,0 +1,22 @@
+ElasMapeiam — arquivos do aplicativo
+
+Este ZIP contém o código-fonte, o sistema de design, as fontes e os testes.
+Não contém senhas, dependências instaladas nem uma cópia dos dados do Lovable Cloud.
+O mapa atual utiliza lugares fictícios.
+
+Para abrir em um ambiente de desenvolvimento com Bun instalado:
+1. Extraia este ZIP.
+2. Copie .env.example para .env.local.
+3. Execute bun install.
+4. Execute bun run dev e abra o endereço mostrado.
+
+A chave pública CARTO está em .env.example. Configurações privadas não foram exportadas.
+Este é o código-fonte, não um instalador para Android ou iPhone.
+
+Ajustes de UI (16/11/2026, fora do Lovable)
+- Card: título não sobrepõe mais os critérios; nome de quem indicou não é cortado; Rota e Compartilhar sempre juntos, sem botões duplicados; "1 confirmação" no singular.
+- Selo "Seguro" passou a "Confirmado" (lib/cycling.ts do design system).
+- Lista ordenada de verdade pela distância: até você (se liberar a localização) ou até o centro de Pinheiros. Rótulo "Perto de você" / "Perto de Pinheiros".
+- Celular: tocar num card abre o painel até a metade e centraliza o pino na área visível (entre a busca e o painel).
+- Celular: ao selecionar um lugar (card ou pino), o painel rola até o topo para o card aparecer inteiro.
+- Celular: aviso "Demonstração · lugares e indicações fictícios" sempre visível abaixo dos filtros.
