@@ -6,6 +6,8 @@ Mapa colaborativo de bicicletários em São Paulo que mostra **se o lugar ainda 
 
 Projeto Final do curso **IA Aplicada da {reprograma}** (novembro de 2026).
 
+**👉 Acesse: [elasmapeiam.vercel.app](https://elasmapeiam.vercel.app/)** (feito para celular; funciona no computador).
+
 > ⚠️ **Demonstração.** Os 15 lugares do mapa (Pinheiros e Vila Madalena) são **fictícios**. Nenhum dado pessoal real está no código ou no banco.
 
 ---
@@ -110,7 +112,7 @@ Para subir o próprio backend, siga [`supabase/README.md`](supabase/README.md) (
 - [x] Mapa com filtros, clusters e cards (dados fictícios)
 - [x] Backend no Supabase com RLS
 - [x] Fluxo Contribuir + extração com Gemini + registro de execuções
-- [x] Publicação na Vercel
+- [x] Publicação na Vercel: [elasmapeiam.vercel.app](https://elasmapeiam.vercel.app/)
 - [ ] Validação humana da IA (rodadas 1 e 2)
 - [ ] Teste com ciclistas
 - [ ] Restringir CORS das funções ao domínio publicado
