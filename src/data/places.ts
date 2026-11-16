@@ -1,9 +1,15 @@
 import { describeCriteria } from "@/design-system/elasmapeiam-library-4342f4";
 import { mockPlaces, type Place } from "./mock-places";
 
-/** Endereço e chave pública (publishable) do Supabase. Não são segredos. */
-export const supabaseUrl = (import.meta.env["VITE_SUPABASE_URL"] as string | undefined)?.replace(/\/+$/, "");
-export const supabaseKey = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined;
+/**
+ * Endereço e chave pública (publishable) do Supabase. Não são segredos: a proteção
+ * dos dados é o RLS no banco. As variáveis de ambiente têm prioridade; os valores
+ * padrão permitem publicar na Vercel sem configurar nada.
+ */
+const DEFAULT_URL = "https://abgwjcmpohzihfjraqew.supabase.co";
+const DEFAULT_KEY = "sb_publishable_IdjBRiWIDFdsyaIMfzbNCQ_TGPtc_Rk";
+export const supabaseUrl = ((import.meta.env["VITE_SUPABASE_URL"] as string | undefined) || DEFAULT_URL).replace(/\/+$/, "");
+export const supabaseKey = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined) || DEFAULT_KEY;
 export const backendConfigured = Boolean(supabaseUrl && supabaseKey);
 
 interface LugarRow {
