@@ -20,7 +20,11 @@ export default function PlacesMap({places,selectedId,onSelect,center,onReady,bot
   useEffect(()=>{
     if(!el.current) return;
     const m=L.map(el.current,{zoomControl:false,attributionControl:true}).setView(center.position,15);
-    L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=${import.meta.env['VITE_CARTO_API_KEY']}`,{maxZoom:19,attribution:"© OpenStreetMap contributors, © CARTO"}).addTo(m);
+    // CARTO exige chave desde 2026; sem a variável, o mapa cai no OpenStreetMap em vez de mostrar "API key required".
+    const cartoKey=(import.meta.env['VITE_CARTO_API_KEY'] as string|undefined)?.trim();
+    const osmAttr='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    if(cartoKey) L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoKey)}`,{maxZoom:19,attribution:`${osmAttr}, © <a href="https://carto.com/attributions">CARTO</a>`}).addTo(m);
+    else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:osmAttr}).addTo(m);
     const icons=new Map<number,L.DivIcon>();
     const group=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:50,
       iconCreateFunction:c=>icons.get(c.getChildCount())??L.divIcon({className:"cycling-leaflet-icon",html:"",iconSize:[40,40]})});
