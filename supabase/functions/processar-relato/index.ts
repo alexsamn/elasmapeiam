@@ -1,6 +1,7 @@
 // Disparada pelo banco (trigger + pg_net) a cada relato novo. Chama o Gemini
 // com o prompt versionado, valida o JSON, grava a saída e registra a execução.
 // Cada relato é processado uma única vez (a linha é "reservada" antes da chamada).
+// Só aceita chamadas com o header x-processar-token (token guardado no Vault).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders, json } from "../_shared/http.ts";
@@ -8,9 +9,33 @@ import { PROMPTS, validarSaida } from "../_shared/prompts.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Comparação em tempo constante para não vazar o token por tempo de resposta.
+function iguais(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a);
+  const eb = new TextEncoder().encode(b);
+  if (ea.length !== eb.length) return false;
+  let d = 0;
+  for (let i = 0; i < ea.length; i++) d |= ea[i] ^ eb[i];
+  return d === 0;
+}
+
+// Impede que o texto do relato "feche" a tag <relato> e escape do invólucro.
+function neutralizarTags(t: string): string {
+  return t.replace(/<\s*\/?\s*relato\s*>/gi, "[relato]");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
   if (req.method !== "POST") return json(req, 405, { erro: "Método não permitido." });
+
+  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  // Autenticação interna: só o banco (trigger/reprocessar) conhece o token.
+  const recebido = req.headers.get("x-processar-token") ?? "";
+  const { data: esperado } = await supabase.rpc("token_processamento");
+  if (typeof esperado !== "string" || !esperado || !iguais(recebido, esperado)) {
+    return json(req, 401, { erro: "Não autorizado." });
+  }
 
   let relatoId = "";
   try {
@@ -18,7 +43,6 @@ Deno.serve(async (req) => {
   } catch { /* corpo inválido */ }
   if (!UUID.test(relatoId)) return json(req, 400, { erro: "relato_id inválido" });
 
-  const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const versao = Deno.env.get("PROMPT_VERSAO") ?? "v1";
   const prompt = PROMPTS[versao];
   const modelo = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.1-flash-lite";
@@ -59,7 +83,7 @@ Deno.serve(async (req) => {
     const { data } = await supabase.from("lugares").select("nome").eq("id", relato.lugar_id).maybeSingle();
     lugar = data?.nome ?? lugar;
   }
-  const conteudo = `${lugar ? `Lugar escolhido no app: ${lugar}\n` : ""}<relato>${relato.texto}</relato>`;
+  const conteudo = `${lugar ? `Lugar escolhido no app: ${neutralizarTags(lugar)}\n` : ""}<relato>${neutralizarTags(relato.texto)}</relato>`;
 
   let bruto: unknown;
   try {
