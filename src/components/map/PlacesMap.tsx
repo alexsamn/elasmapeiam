@@ -6,10 +6,10 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import { createMapMarkerIcon, createMapClusterIcon } from "@/design-system/elasmapeiam-library-4342f4";
 import { markerKindFor, type MockPlace } from "@/data/mock-places";
 
-export interface PlacesMapProps { places:MockPlace[]; selectedId:string|null; onSelect:(id:string)=>void; center:{position:[number,number];key:number}; onReady?:()=>void; bottomPadding:number; /** Altura ocupada pela busca e filtros no topo. */ topPadding?:number }
+export interface PlacesMapProps { places:MockPlace[]; selectedId:string|null; onSelect:(id:string)=>void; /** Toque numa área vazia do mapa. */ onMapClick?:()=>void; center:{position:[number,number];key:number}; onReady?:()=>void; bottomPadding:number; /** Altura ocupada pela busca e filtros no topo. */ topPadding?:number }
 
 /** Browser-only Leaflet map; load with React.lazy behind ClientOnly. */
-export default function PlacesMap({places,selectedId,onSelect,center,onReady,bottomPadding,topPadding=0}:PlacesMapProps){
+export default function PlacesMap({places,selectedId,onSelect,onMapClick,center,onReady,bottomPadding,topPadding=0}:PlacesMapProps){
   const el=useRef<HTMLDivElement>(null);
   const map=useRef<L.Map|null>(null);
   const cluster=useRef<L.MarkerClusterGroup|null>(null);
@@ -17,6 +17,8 @@ export default function PlacesMap({places,selectedId,onSelect,center,onReady,bot
   const topRef=useRef(topPadding); topRef.current=topPadding;
   const first=useRef(true);
   const selectRef=useRef(onSelect); selectRef.current=onSelect;
+  const mapClickRef=useRef(onMapClick); mapClickRef.current=onMapClick;
+  const selectedPos=useRef<[number,number]|null>(null); selectedPos.current=places.find(p=>p.id===selectedId)?.position??null;
   useEffect(()=>{
     if(!el.current) return;
     const m=L.map(el.current,{zoomControl:false,attributionControl:true}).setView(center.position,15);
@@ -30,6 +32,7 @@ export default function PlacesMap({places,selectedId,onSelect,center,onReady,bot
       iconCreateFunction:c=>icons.get(c.getChildCount())??L.divIcon({className:"cycling-leaflet-icon",html:"",iconSize:[40,40]})});
     // Pre-build cluster icons for possible counts.
     Promise.all(Array.from({length:15},(_,i)=>createMapClusterIcon(i+1).then(ic=>icons.set(i+1,ic)))).then(()=>group.refreshClusters());
+    m.on("click",()=>mapClickRef.current?.());
     m.addLayer(group); map.current=m; cluster.current=group; onReady?.();
     return ()=>{m.remove();map.current=null;};
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,6 +53,9 @@ export default function PlacesMap({places,selectedId,onSelect,center,onReady,bot
   // Center a point in the visible area between the top controls and the sheet.
   function centerAbove(pos:[number,number],zoom?:number){ const m=map.current; if(!m) return; const z=zoom??m.getZoom();
     const pt=m.project(pos,z).add([0,(padRef.current-topRef.current)/2]); m.setView(m.unproject(pt,z),z); }
+  // Quando o painel sobe, traz o pin selecionado para cima dele se ele ficou escondido.
+  useEffect(()=>{ const m=map.current, pos=selectedPos.current; if(!m||!pos) return; const t=setTimeout(()=>{
+    const y=m.latLngToContainerPoint(pos).y, h=m.getSize().y; if(bottomPadding>h*0.75) return; if(y>h-bottomPadding-24||y<topRef.current) centerAbove(pos); },120); return ()=>clearTimeout(t); },[bottomPadding]);
   useEffect(()=>{ if(center.key>0) centerAbove(center.position,16); },[center]); // eslint-disable-line react-hooks/exhaustive-deps
   // Fit filtered places above the sheet; initial view stays on the fixed center.
   useEffect(()=>{ const m=map.current; if(!m) return; if(first.current){first.current=false;return;} if(!places.length) return;

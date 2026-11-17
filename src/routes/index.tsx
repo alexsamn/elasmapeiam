@@ -1,6 +1,6 @@
 import { createFileRoute, ClientOnly, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { SearchBar, FilterChip, FilterChipRow, MapControls, BottomSheet, PlaceCard, Skeleton, InfoBanner, EmptyState, Toast, FixedNotice } from "@/design-system/elasmapeiam-library-4342f4";
+import { SearchBar, FilterChip, FilterChipRow, MapControls, BottomSheet, PlaceCard, PlaceDetails, PlaceSummary, Button, Icon, Skeleton, InfoBanner, EmptyState, Toast, FixedNotice } from "@/design-system/elasmapeiam-library-4342f4";
 import { PINHEIROS_CENTER, statusForKind, placeSubtitle, distanceMeters, type Place } from "@/data/mock-places";
 import { fetchPlaces } from "@/data/places";
 import { APP_DESCRIPTION, APP_NAME, pageTitle } from "@/config/app";
@@ -56,8 +56,6 @@ function Index() {
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   useEffect(() => { if (desktop && selectedId) cardRefs.current.get(selectedId)?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [desktop, selectedId]);
   const sheetRef = useRef<HTMLDivElement>(null);
-  // O card selecionado vai para o topo da lista; rola o painel até o topo para ele aparecer inteiro.
-  useEffect(() => { if (!desktop && selectedId) sheetRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }, [desktop, selectedId]);
   const [sheetH, setSheetH] = useState(136);
   useEffect(() => {
     const el = sheetRef.current; if (!el) return;
@@ -80,7 +78,10 @@ function Index() {
   const sortLabel = user ? "Perto de você" : "Perto de Pinheiros";
   const ordered = useMemo(() => { const s = sorted.find(p => p.id === selectedId); return s ? [s, ...sorted.filter(p => p !== s)] : sorted; }, [sorted, selectedId]);
 
-  function select(id: string) { setSelectedId(id); setSnap(s => (s === "peek" ? "half" : s)); }
+  // Como no Google Maps: tocar no pin abre o lugar na metade da tela; tocar no mapa baixa o painel.
+  function select(id: string) { setSelectedId(id); setSnap("half"); }
+  function closePlace() { setSelectedId(null); setSnap("peek"); }
+  const selected = !desktop && selectedId ? places.find(p => p.id === selectedId) ?? null : null;
 
   function locate() {
     const fallback = () => { setGeoDenied(true); setCenter(c => ({ position: PINHEIROS_CENTER, key: c.key + 1 })); setLocating(false); };
@@ -168,7 +169,7 @@ function Index() {
     <main className="relative mx-auto h-dvh w-full max-w-md md:max-w-none overflow-hidden bg-fundo">
       <ClientOnly fallback={mapFallback}>
         <Suspense fallback={mapFallback}>
-          <PlacesMap places={places} selectedId={selectedId} onSelect={select} center={center} bottomPadding={sheetH} topPadding={snap === "peek" ? 170 : 150} />
+          <PlacesMap places={places} selectedId={selectedId} onSelect={select} onMapClick={() => setSnap("peek")} center={center} bottomPadding={sheetH} topPadding={snap === "peek" ? 170 : 150} />
         </Suspense>
       </ClientOnly>
 
@@ -203,11 +204,21 @@ function Index() {
         )}
       </div>
 
-      <MapControls className={`absolute right-4 z-10 transition-all ${snap === "full" ? "hidden" : ""}`} style={{ bottom: snap === "half" ? "calc(50% + 16px)" : "136px" }} onLocate={locate} onAdd={goContribute} locating={locating} />
+      <MapControls className={`absolute right-4 z-10 ${snap === "full" ? "hidden" : ""}`} style={{ bottom: sheetH + 16 }} onLocate={locate} onAdd={goContribute} locating={locating} />
 
-      <BottomSheet ref={sheetRef} placement="static" snap={snap} onSnapChange={setSnap} label={label} sortLabel={sortLabel} className="z-20 md:mx-auto md:max-w-120">
-        <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
-        {list}
+      <BottomSheet ref={sheetRef} placement="static" snap={snap} onSnapChange={setSnap} label={selected ? selected.title : label} sortLabel={sortLabel} scrollResetKey={selectedId} className="z-20 md:mx-auto md:max-w-120"
+        {...(selected ? { header: (
+          <PlaceSummary title={selected.title} subtitle={placeSubtitle(selected, user)} status={selected.status ?? statusForKind[selected.kind]} {...(selected.statusLabel ? { statusLabel: selected.statusLabel } : {})}
+            confirmations={selected.confirmations} {...(selected.lastConfirmed ? { lastConfirmed: selected.lastConfirmed } : {})}
+            actions={<Button variant="icon" aria-label="Fechar e voltar à lista" title="Fechar" onClick={closePlace}><Icon name="X" /></Button>} />
+        ) } : {})}>
+        {selected ? (
+          <PlaceDetails criteria={selected.criteria} attention={selected.attention ?? []} address={selected.address} confirmations={selected.confirmations}
+            onRoute={() => routeTo(selected)} onShare={() => void share(selected)} onDetails={() => notify("Em breve: página de detalhes")} />
+        ) : (<>
+          <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
+          {list}
+        </>)}
       </BottomSheet>
       {toastEl}
     </main>
