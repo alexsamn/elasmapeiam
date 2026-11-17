@@ -37,7 +37,6 @@ function Index() {
   const [center, setCenter] = useState({ position: PINHEIROS_CENTER, key: 0 });
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<[number, number] | null>(null);
-  const [alertInfo, setAlertInfo] = useState(false);
   const [toast, setToast] = useState<{ message: string; key: number } | null>(null);
   const [allPlaces, setAllPlaces] = useState<Place[]>([]);
   const navigate = useNavigate();
@@ -121,14 +120,12 @@ function Index() {
   const toastEl = toast && <Toast key={toast.key} open onOpenChange={open => { if (!open) setToast(null); }}>{toast.message}</Toast>;
   const banners = (<>
     {shopInfo && <InfoBanner title="Oficinas chegam em breve" onDismiss={() => setShopInfo(false)}>Por enquanto o mapa mostra só bicicletários.</InfoBanner>}
-    {alertInfo && <InfoBanner title="Alertas de roubo chegam em breve" onDismiss={() => setAlertInfo(false)}>Em breve você verá áreas com relatos de roubo de bicicletas.</InfoBanner>}
     {geoDenied && <InfoBanner title="Não conseguimos sua localização" onDismiss={() => setGeoDenied(false)}>Mostrando Pinheiros. Libere a localização no navegador para ver lugares perto de você.</InfoBanner>}
   </>);
   const chips = (
     <FilterChipRow aria-label="Filtrar lugares" className={desktop ? "px-0" : undefined}>
       <FilterChip surface="map" icon="Bike" selected={active.includes("parking")} onSelectedChange={on => setActive(a => (on ? [...a, "parking"] : a.filter(k => k !== "parking")))}>Bicicletários</FilterChip>
       <FilterChip surface="map" icon="Wrench" selected={false} onSelectedChange={() => setShopInfo(true)}>Oficinas</FilterChip>
-      <FilterChip surface="map" variant="alert" selected={false} onSelectedChange={() => setAlertInfo(true)}>Alertas</FilterChip>
     </FilterChipRow>
   );
 
@@ -178,20 +175,12 @@ function Index() {
         <FilterChipRow aria-label="Filtrar lugares">
           <FilterChip surface="map" icon="Bike" selected={active.includes("parking")} onSelectedChange={on => setActive(a => (on ? [...a, "parking"] : a.filter(k => k !== "parking")))}>Bicicletários</FilterChip>
           <FilterChip surface="map" icon="Wrench" selected={false} onSelectedChange={() => setShopInfo(true)}>Oficinas</FilterChip>
-          <FilterChip surface="map" variant="alert" selected={false} onSelectedChange={() => setAlertInfo(true)}>Alertas</FilterChip>
         </FilterChipRow>
         <p className="mx-4 self-start rounded-pill border border-borda bg-branco px-3 py-1 font-sans text-chip leading-chip text-foreground">Demonstração · lugares e indicações fictícios</p>
         {shopInfo && (
           <div className="px-4">
             <InfoBanner title="Oficinas chegam em breve" onDismiss={() => setShopInfo(false)}>
               Por enquanto o mapa mostra só bicicletários.
-            </InfoBanner>
-          </div>
-        )}
-        {alertInfo && (
-          <div className="px-4">
-            <InfoBanner title="Alertas de roubo chegam em breve" onDismiss={() => setAlertInfo(false)}>
-              Em breve você verá áreas com relatos de roubo de bicicletas.
             </InfoBanner>
           </div>
         )}
@@ -212,10 +201,16 @@ function Index() {
             confirmations={selected.confirmations} {...(selected.lastConfirmed ? { lastConfirmed: selected.lastConfirmed } : {})}
             actions={<Button variant="icon" aria-label="Fechar e voltar à lista" title="Fechar" onClick={closePlace}><Icon name="X" /></Button>} />
         ) } : {})}>
-        {selected ? (
+        {selected ? (<>
           <PlaceDetails criteria={selected.criteria} attention={selected.attention ?? []} address={selected.address} confirmations={selected.confirmations}
             onRoute={() => routeTo(selected)} onShare={() => void share(selected)} onDetails={() => notify("Em breve: página de detalhes")} />
-        ) : (<>
+          {sorted.length > 1 && <h3 className="mt-4 font-sans text-title leading-body font-semibold">Outros bicicletários</h3>}
+          {sorted.filter(p => p.id !== selected.id).map(p => (
+            <PlaceCard key={p.id} title={p.title} subtitle={placeSubtitle(p, user)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})}
+              confirmations={p.confirmations} {...(p.lastConfirmed ? { lastConfirmed: p.lastConfirmed } : {})}
+              expanded={false} onExpandedChange={open => { if (open) select(p.id); }} />
+          ))}
+        </>) : (<>
           <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
           {list}
         </>)}

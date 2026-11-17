@@ -22,7 +22,7 @@ export interface BottomSheetProps extends HTMLAttributes<HTMLDivElement>{
 /**
  * Draggable sheet with three heights, like a map app:
  * peek = only the header, half = 50% of the parent, full = whole parent.
- * Drag the header at any height, or the content while not at full; at full the content scrolls.
+ * Drag the header at any height (or anywhere at peek); at half and full the content scrolls.
  */
 export const BottomSheet=forwardRef<HTMLDivElement,BottomSheetProps>(({snap="peek",placement="floating",onSnapChange,label="12 lugares por aqui",sortLabel="Mais perto primeiro",header,scrollResetKey,children,className,style,...props},ref)=>{
   const sheet=useRef<HTMLDivElement>(null);
@@ -48,8 +48,8 @@ export const BottomSheet=forwardRef<HTMLDivElement,BottomSheetProps>(({snap="pee
   function onPointerDown(e:ReactPointerEvent<HTMLDivElement>){
     if(!onSnapChange||e.button>0) return;
     const fromTop=!!top.current?.contains(e.target as Node);
-    // At full height the content scrolls natively; only the header drags.
-    if(snap==="full"&&!fromTop) return;
+    // At half and full height the content scrolls natively; only the header drags.
+    if(snap!=="peek"&&!fromTop) return;
     const h=sheet.current?.getBoundingClientRect().height??heightOf(snap);
     drag.current={id:e.pointerId,y:e.clientY,lastY:e.clientY,h,t:e.timeStamp,v:0,active:false,fromTop};
   }
@@ -76,13 +76,13 @@ export const BottomSheet=forwardRef<HTMLDivElement,BottomSheetProps>(({snap="pee
   const height=dragH??(H?heightOf(snap):undefined);
   return <section ref={sheet} aria-label={label} data-snap={snap} data-placement={placement} data-dragging={dragH!==null||undefined}
     className={cn("sheet bg-fundo text-foreground flex flex-col overflow-hidden",className)}
-    style={{...style,height,touchAction:snap==="full"?"auto":"none"}}
+    style={{...style,height,touchAction:snap==="peek"?"none":"auto"}}
     onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={()=>{drag.current=null;setDragH(null);}} {...props}>
     <div ref={top} className="shrink-0 px-4 pb-4 pt-[calc(var(--spacing-5)/2)] touch-none select-none">
       <div className="mb-2 flex justify-center">{onSnapChange?<Button variant="secondary" aria-label="Alterar altura do painel" title="Alterar altura do painel" onClick={cycle} onKeyDown={event=>{if(event.key==="ArrowUp"||event.key==="ArrowDown"){event.preventDefault();onSnapChange(SNAPS[Math.max(0,Math.min(2,SNAPS.indexOf(snap)+(event.key==="ArrowUp"?1:-1)))]);}}} className="h-8 w-16 rounded-input border-0 bg-transparent px-0 hover:bg-transparent"><span className="sheet-handle rounded-pill bg-handle"/></Button>:<span aria-hidden="true" className="sheet-handle rounded-pill bg-handle"/>}</div>
       {header??<header className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-sans text-title leading-body font-semibold">{label}</h2><span className="font-sans text-subtitle leading-subtitle text-muted-foreground">{sortLabel}</span></header>}
     </div>
-    <div ref={body} className={cn("sheet-body min-h-0 flex-1 px-4",snap==="full"&&dragH===null?"overflow-y-auto overscroll-contain":"overflow-hidden")}>
+    <div ref={body} className={cn("sheet-body min-h-0 flex-1 px-4",snap!=="peek"&&dragH===null?"overflow-y-auto overscroll-contain":"overflow-hidden")}>
       <div className="flex flex-col gap-3 pb-[calc(24px+env(safe-area-inset-bottom))] [&>*]:shrink-0">{children}</div>
     </div>
   </section>;
