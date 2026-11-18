@@ -51,6 +51,8 @@ function Index() {
     }
   }
   const [desktop, setDesktop] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => { if (!menuOpen) return; const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMenuOpen(false); }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [menuOpen]);
   useEffect(() => { const mq = window.matchMedia("(min-width: 992px)"); const on = () => setDesktop(mq.matches); on(); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); }, []);
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   useEffect(() => { if (desktop && selectedId) cardRefs.current.get(selectedId)?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [desktop, selectedId]);
@@ -130,20 +132,40 @@ function Index() {
   );
 
   if (desktop) {
-    const nav = [{ label: "Explorar", active: true }, { label: "Contribuir" }, { label: "Perfil" }];
+    // Menu compacto (rail) como no Google Maps: só ícones com rótulos pequenos.
+    const nav = [
+      { label: "Explorar", icon: "MapPin" as const, active: true },
+      { label: "Contribuir", icon: "Plus" as const, onClick: goContribute },
+      { label: "Perfil", icon: "User" as const, onClick: () => notify("Em breve") },
+    ];
+    const railItem = "flex w-16 flex-col items-center gap-1 rounded-input py-2 font-sans text-[11px] leading-subtitle font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-preto";
     return (
-      <div className="flex h-dvh w-full overflow-hidden bg-fundo text-foreground">
-        <aside className="flex w-60 shrink-0 flex-col gap-6 border-r border-borda bg-branco p-6">
-          <p className="font-sans text-title leading-body font-semibold">{APP_NAME}</p>
-          <nav aria-label="Navegação principal" className="flex flex-col gap-1">
-            {nav.map(n => (
-              <button key={n.label} type="button" aria-current={n.active ? "page" : undefined}
-                onClick={n.active ? undefined : n.label === "Contribuir" ? goContribute : () => notify("Em breve")}
-                className={`flex h-11 items-center rounded-input px-3 text-left font-sans text-body leading-body font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-preto ${n.active ? "bg-fundo" : "hover:bg-fundo"}`}>{n.label}</button>
-            ))}
-          </nav>
-          <FixedNotice variant="privacy" className="mt-auto">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
-        </aside>
+      <div className="relative flex h-dvh w-full overflow-hidden bg-fundo text-foreground">
+        <nav aria-label="Navegação principal" className="z-30 flex w-18 shrink-0 flex-col items-center gap-2 border-r border-borda bg-branco py-3">
+          <button type="button" aria-label="Menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(o => !o)} className={`${railItem} hover:bg-fundo`}>
+            <Icon name="Menu" /><span className="sr-only">Menu</span>
+          </button>
+          {nav.map(n => (
+            <button key={n.label} type="button" aria-current={n.active ? "page" : undefined} onClick={n.onClick} className={`${railItem} ${n.active ? "" : "hover:bg-fundo"}`}>
+              <span className={`flex h-8 w-14 items-center justify-center rounded-pill ${n.active ? "bg-fundo" : ""}`}><Icon name={n.icon} /></span>
+              {n.label}
+            </button>
+          ))}
+        </nav>
+        {menuOpen && (<>
+          <button type="button" aria-label="Fechar menu" className="absolute inset-0 z-20 cursor-default bg-preto/10" onClick={() => setMenuOpen(false)} />
+          <div role="dialog" aria-label="Menu" className="absolute bottom-0 left-18 top-0 z-30 flex w-64 flex-col gap-6 border-r border-borda bg-branco p-6 shadow-lg">
+            <p className="font-sans text-title leading-body font-semibold">{APP_NAME}</p>
+            <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
+          </div>
+        </>)}
+        <section aria-label={label} className="flex w-100 shrink-0 flex-col overflow-y-auto border-r border-borda bg-fundo px-4 py-6">
+          <header className="mb-5 flex flex-wrap items-center justify-between gap-2"><h2 className="font-sans text-title leading-body font-semibold">{label}</h2><span className="font-sans text-subtitle leading-subtitle text-muted-foreground">{sortLabel}</span></header>
+          <div className="flex flex-col gap-3 [&>*]:shrink-0">
+            <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
+            {list}
+          </div>
+        </section>
         <main className="relative min-w-0 flex-1">
           {map}
           <div className="absolute left-4 right-4 top-4 z-10 flex max-w-130 flex-col gap-3 pointer-events-none [&>*]:pointer-events-auto">
@@ -153,10 +175,6 @@ function Index() {
           </div>
           <MapControls className="absolute bottom-6 right-6 z-10" onLocate={locate} onAdd={goContribute} locating={locating} />
         </main>
-        <section aria-label={label} className="flex w-100 shrink-0 flex-col overflow-y-auto border-l border-borda bg-fundo px-4 py-6">
-          <header className="mb-5 flex flex-wrap items-center justify-between gap-2"><h2 className="font-sans text-title leading-body font-semibold">{label}</h2><span className="font-sans text-subtitle leading-subtitle text-muted-foreground">{sortLabel}</span></header>
-          <div className="flex flex-col gap-3 [&>*]:shrink-0">{list}</div>
-        </section>
         {toastEl}
       </div>
     );
