@@ -1,6 +1,6 @@
 import { createFileRoute, ClientOnly, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { SearchBar, FilterChip, FilterChipRow, MapControls, BottomSheet, PlaceCard, Skeleton, InfoBanner, EmptyState, Toast, FixedNotice } from "@/design-system/elasmapeiam-library-4342f4";
+import { SearchBar, FilterChip, FilterChipRow, MapControls, BottomSheet, PlaceCard, PlaceDetails, PlaceSummary, Button, Icon, Skeleton, InfoBanner, EmptyState, Toast, FixedNotice } from "@/design-system/elasmapeiam-library-4342f4";
 import { PINHEIROS_CENTER, statusForKind, placeSubtitle, distanceMeters, type Place } from "@/data/mock-places";
 import { fetchPlaces } from "@/data/places";
 import { APP_DESCRIPTION, APP_NAME, pageTitle } from "@/config/app";
@@ -37,7 +37,6 @@ function Index() {
   const [center, setCenter] = useState({ position: PINHEIROS_CENTER, key: 0 });
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<[number, number] | null>(null);
-  const [alertInfo, setAlertInfo] = useState(false);
   const [toast, setToast] = useState<{ message: string; key: number } | null>(null);
   const [allPlaces, setAllPlaces] = useState<Place[]>([]);
   const navigate = useNavigate();
@@ -56,8 +55,6 @@ function Index() {
   const cardRefs = useRef(new Map<string, HTMLDivElement>());
   useEffect(() => { if (desktop && selectedId) cardRefs.current.get(selectedId)?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [desktop, selectedId]);
   const sheetRef = useRef<HTMLDivElement>(null);
-  // O card selecionado vai para o topo da lista; rola o painel até o topo para ele aparecer inteiro.
-  useEffect(() => { if (!desktop && selectedId) sheetRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }, [desktop, selectedId]);
   const [sheetH, setSheetH] = useState(136);
   useEffect(() => {
     const el = sheetRef.current; if (!el) return;
@@ -80,7 +77,10 @@ function Index() {
   const sortLabel = user ? "Perto de você" : "Perto de Pinheiros";
   const ordered = useMemo(() => { const s = sorted.find(p => p.id === selectedId); return s ? [s, ...sorted.filter(p => p !== s)] : sorted; }, [sorted, selectedId]);
 
-  function select(id: string) { setSelectedId(id); setSnap(s => (s === "peek" ? "half" : s)); }
+  // Como no Google Maps: tocar no pin abre o lugar na metade da tela; tocar no mapa baixa o painel.
+  function select(id: string) { setSelectedId(id); setSnap("half"); }
+  function closePlace() { setSelectedId(null); setSnap("peek"); }
+  const selected = !desktop && selectedId ? places.find(p => p.id === selectedId) ?? null : null;
 
   function locate() {
     const fallback = () => { setGeoDenied(true); setCenter(c => ({ position: PINHEIROS_CENTER, key: c.key + 1 })); setLocating(false); };
@@ -120,14 +120,12 @@ function Index() {
   const toastEl = toast && <Toast key={toast.key} open onOpenChange={open => { if (!open) setToast(null); }}>{toast.message}</Toast>;
   const banners = (<>
     {shopInfo && <InfoBanner title="Oficinas chegam em breve" onDismiss={() => setShopInfo(false)}>Por enquanto o mapa mostra só bicicletários.</InfoBanner>}
-    {alertInfo && <InfoBanner title="Alertas de roubo chegam em breve" onDismiss={() => setAlertInfo(false)}>Em breve você verá áreas com relatos de roubo de bicicletas.</InfoBanner>}
     {geoDenied && <InfoBanner title="Não conseguimos sua localização" onDismiss={() => setGeoDenied(false)}>Mostrando Pinheiros. Libere a localização no navegador para ver lugares perto de você.</InfoBanner>}
   </>);
   const chips = (
     <FilterChipRow aria-label="Filtrar lugares" className={desktop ? "px-0" : undefined}>
       <FilterChip surface="map" icon="Bike" selected={active.includes("parking")} onSelectedChange={on => setActive(a => (on ? [...a, "parking"] : a.filter(k => k !== "parking")))}>Bicicletários</FilterChip>
       <FilterChip surface="map" icon="Wrench" selected={false} onSelectedChange={() => setShopInfo(true)}>Oficinas</FilterChip>
-      <FilterChip surface="map" variant="alert" selected={false} onSelectedChange={() => setAlertInfo(true)}>Alertas</FilterChip>
     </FilterChipRow>
   );
 
@@ -168,7 +166,7 @@ function Index() {
     <main className="relative mx-auto h-dvh w-full max-w-md md:max-w-none overflow-hidden bg-fundo">
       <ClientOnly fallback={mapFallback}>
         <Suspense fallback={mapFallback}>
-          <PlacesMap places={places} selectedId={selectedId} onSelect={select} center={center} bottomPadding={sheetH} topPadding={snap === "peek" ? 170 : 150} />
+          <PlacesMap places={places} selectedId={selectedId} onSelect={select} onMapClick={() => setSnap("peek")} center={center} bottomPadding={sheetH} topPadding={snap === "peek" ? 170 : 150} />
         </Suspense>
       </ClientOnly>
 
@@ -177,20 +175,12 @@ function Index() {
         <FilterChipRow aria-label="Filtrar lugares">
           <FilterChip surface="map" icon="Bike" selected={active.includes("parking")} onSelectedChange={on => setActive(a => (on ? [...a, "parking"] : a.filter(k => k !== "parking")))}>Bicicletários</FilterChip>
           <FilterChip surface="map" icon="Wrench" selected={false} onSelectedChange={() => setShopInfo(true)}>Oficinas</FilterChip>
-          <FilterChip surface="map" variant="alert" selected={false} onSelectedChange={() => setAlertInfo(true)}>Alertas</FilterChip>
         </FilterChipRow>
         <p className="mx-4 self-start rounded-pill border border-borda bg-branco px-3 py-1 font-sans text-chip leading-chip text-foreground">Demonstração · lugares e indicações fictícios</p>
         {shopInfo && (
           <div className="px-4">
             <InfoBanner title="Oficinas chegam em breve" onDismiss={() => setShopInfo(false)}>
               Por enquanto o mapa mostra só bicicletários.
-            </InfoBanner>
-          </div>
-        )}
-        {alertInfo && (
-          <div className="px-4">
-            <InfoBanner title="Alertas de roubo chegam em breve" onDismiss={() => setAlertInfo(false)}>
-              Em breve você verá áreas com relatos de roubo de bicicletas.
             </InfoBanner>
           </div>
         )}
@@ -203,11 +193,27 @@ function Index() {
         )}
       </div>
 
-      <MapControls className={`absolute right-4 z-10 transition-all ${snap === "full" ? "hidden" : ""}`} style={{ bottom: snap === "half" ? "calc(50% + 16px)" : "136px" }} onLocate={locate} onAdd={goContribute} locating={locating} />
+      <MapControls className={`absolute right-4 z-10 ${snap === "full" ? "hidden" : ""}`} style={{ bottom: sheetH + 16 }} onLocate={locate} onAdd={goContribute} locating={locating} />
 
-      <BottomSheet ref={sheetRef} placement="static" snap={snap} onSnapChange={setSnap} label={label} sortLabel={sortLabel} className="z-20 md:mx-auto md:max-w-120">
-        <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
-        {list}
+      <BottomSheet ref={sheetRef} placement="static" snap={snap} onSnapChange={setSnap} label={selected ? selected.title : label} sortLabel={sortLabel} scrollResetKey={selectedId} className="z-20 md:mx-auto md:max-w-120"
+        {...(selected ? { header: (
+          <PlaceSummary title={selected.title} subtitle={placeSubtitle(selected, user)} status={selected.status ?? statusForKind[selected.kind]} {...(selected.statusLabel ? { statusLabel: selected.statusLabel } : {})}
+            confirmations={selected.confirmations} {...(selected.lastConfirmed ? { lastConfirmed: selected.lastConfirmed } : {})}
+            actions={<Button variant="icon" aria-label="Fechar e voltar à lista" title="Fechar" onClick={closePlace}><Icon name="X" /></Button>} />
+        ) } : {})}>
+        {selected ? (<>
+          <PlaceDetails criteria={selected.criteria} attention={selected.attention ?? []} address={selected.address} confirmations={selected.confirmations}
+            onRoute={() => routeTo(selected)} onShare={() => void share(selected)} onDetails={() => notify("Em breve: página de detalhes")} />
+          {sorted.length > 1 && <h3 className="mt-4 font-sans text-title leading-body font-semibold">Outros bicicletários</h3>}
+          {sorted.filter(p => p.id !== selected.id).map(p => (
+            <PlaceCard key={p.id} title={p.title} subtitle={placeSubtitle(p, user)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})}
+              confirmations={p.confirmations} {...(p.lastConfirmed ? { lastConfirmed: p.lastConfirmed } : {})}
+              expanded={false} onExpandedChange={open => { if (open) select(p.id); }} />
+          ))}
+        </>) : (<>
+          <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
+          {list}
+        </>)}
       </BottomSheet>
       {toastEl}
     </main>

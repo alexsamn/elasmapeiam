@@ -18,7 +18,7 @@ export { criteria, findCriterion, resolveCriteria, describeCriteria, type Criter
 export { StatusChip, type StatusChipProps } from "./components/ui/status-chip";
 export { FilterChip, FilterChipRow, type FilterChipProps, type FilterChipRowProps } from "./components/ui/filter-chip";
 export { MapPin, MapCluster, type MapPinProps, type MapClusterProps } from "./components/ui/map-pin";
-export { PlaceCard, type PlaceCardProps } from "./components/ui/place-card";
+export { PlaceCard, PlaceDetails, PlaceSummary, type PlaceCardProps, type PlaceDetailsProps, type PlaceSummaryProps } from "./components/ui/place-card";
 export { CriteriaOption, type CriteriaOptionProps } from "./components/ui/criteria-option";
 export { CriteriaCheckbox, type CriteriaCheckboxProps } from "./components/ui/criteria-checkbox";
 export { BikeRackIcon, type BikeRackIconProps } from "./components/ui/bike-rack-icon";
