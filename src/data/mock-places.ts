@@ -48,4 +48,4 @@ export const statusForKind: Record<PinKind, PlaceStatus> = { safe: "safe", shop:
 export const markerKindFor = { safe: "bike_parking", shop: "repair_shop", unconfirmed: "unconfirmed" } as const;
 export function distanceMeters(a: [number, number], b: [number, number]) { const R = 6371000, r = Math.PI / 180, dLat = (b[0] - a[0]) * r, dLng = (b[1] - a[1]) * r; const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLng / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
 export function formatDistance(m: number) { return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1).replace(".", ",")} km`; }
-export function placeSubtitle(p: Place, user: [number, number] | null) { return user ? `${p.bairro} · ${formatDistance(distanceMeters(user, p.position))} de você` : `${p.type} · ${p.bairro}`; }
+export function placeSubtitle(p: Place, from: [number, number] | null, suffix = "de você") { return from ? `${p.bairro} · ${formatDistance(distanceMeters(from, p.position))} ${suffix}` : `${p.type} · ${p.bairro}`; }

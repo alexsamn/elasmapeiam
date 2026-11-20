@@ -6,16 +6,18 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import { createMapMarkerIcon, createMapClusterIcon } from "@/design-system/elasmapeiam-library-4342f4";
 import { markerKindFor, type MockPlace } from "@/data/mock-places";
 
-export interface PlacesMapProps { places:MockPlace[]; selectedId:string|null; onSelect:(id:string)=>void; /** Toque numa área vazia do mapa. */ onMapClick?:()=>void; center:{position:[number,number];key:number}; onReady?:()=>void; bottomPadding:number; /** Altura ocupada pela busca e filtros no topo. */ topPadding?:number }
+export interface PlacesMapProps { places:MockPlace[]; selectedId:string|null; onSelect:(id:string)=>void; /** Toque numa área vazia do mapa. */ onMapClick?:()=>void; center:{position:[number,number];key:number}; /** Endereço buscado pela pessoa (ponto preto). */ searchPoint?:[number,number]|null; onReady?:()=>void; bottomPadding:number; /** Altura ocupada pela busca e filtros no topo. */ topPadding?:number }
 
 /** Browser-only Leaflet map; load with React.lazy behind ClientOnly. */
-export default function PlacesMap({places,selectedId,onSelect,onMapClick,center,onReady,bottomPadding,topPadding=0}:PlacesMapProps){
+export default function PlacesMap({places,selectedId,onSelect,onMapClick,center,searchPoint=null,onReady,bottomPadding,topPadding=0}:PlacesMapProps){
   const el=useRef<HTMLDivElement>(null);
   const map=useRef<L.Map|null>(null);
   const cluster=useRef<L.MarkerClusterGroup|null>(null);
   const padRef=useRef(bottomPadding); padRef.current=bottomPadding;
   const topRef=useRef(topPadding); topRef.current=topPadding;
   const first=useRef(true);
+  const fitKey=useRef(center.key);
+  const pointLayer=useRef<L.CircleMarker|null>(null);
   const selectRef=useRef(onSelect); selectRef.current=onSelect;
   const mapClickRef=useRef(onMapClick); mapClickRef.current=onMapClick;
   const selectedPos=useRef<[number,number]|null>(null); selectedPos.current=places.find(p=>p.id===selectedId)?.position??null;
@@ -58,7 +60,13 @@ export default function PlacesMap({places,selectedId,onSelect,onMapClick,center,
     const y=m.latLngToContainerPoint(pos).y, h=m.getSize().y; if(bottomPadding>h*0.75) return; if(y>h-bottomPadding-24||y<topRef.current) centerAbove(pos); },120); return ()=>clearTimeout(t); },[bottomPadding]);
   useEffect(()=>{ if(center.key>0) centerAbove(center.position,16); },[center]); // eslint-disable-line react-hooks/exhaustive-deps
   // Fit filtered places above the sheet; initial view stays on the fixed center.
-  useEffect(()=>{ const m=map.current; if(!m) return; if(first.current){first.current=false;return;} if(!places.length) return;
-    m.fitBounds(L.latLngBounds(places.map(p=>p.position)),{paddingTopLeft:[24,topRef.current+24],paddingBottomRight:[24,padRef.current+24],maxZoom:16}); },[places]);
+  // Se o centro acabou de mudar (endereço buscado ou "minha localização"), não refaz o enquadramento.
+  useEffect(()=>{ const m=map.current; if(!m) return; if(first.current){first.current=false;return;}
+    if(fitKey.current!==center.key){fitKey.current=center.key;return;} if(!places.length) return;
+    m.fitBounds(L.latLngBounds(places.map(p=>p.position)),{paddingTopLeft:[24,topRef.current+24],paddingBottomRight:[24,padRef.current+24],maxZoom:16}); },[places,center.key]);
+  // Ponto do endereço buscado.
+  useEffect(()=>{ const m=map.current; if(!m) return; pointLayer.current?.remove(); pointLayer.current=null;
+    if(searchPoint) pointLayer.current=L.circleMarker(searchPoint,{radius:8,color:"#ffffff",weight:3,fillColor:"#111111",fillOpacity:1,interactive:false}).addTo(m);
+  },[searchPoint?.[0],searchPoint?.[1]]); // eslint-disable-line react-hooks/exhaustive-deps
   return <div ref={el} className="absolute inset-0 z-0" aria-label="Mapa de lugares" />;
 }
