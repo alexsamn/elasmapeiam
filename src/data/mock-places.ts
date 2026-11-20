@@ -25,6 +25,10 @@ export type MockPlace = Place;
 
 export const PINHEIROS_CENTER: [number, number] = [-23.5615, -46.6885];
 
+/** Centro inicial do mapa (Av. Paulista), onde há mais lugares reais por perto. */
+export const START_CENTER: [number, number] = [-23.5614, -46.6559];
+export const START_LABEL = "Av. Paulista";
+
 /** Fallback used only when the database is not configured or does not answer. */
 export const mockPlaces: Place[] = [
   { id: "p1", kind: "safe", title: "Paraciclo Largo da Batata", subtitle: "Bicicletário · Pinheiros", type: "Bicicletário", bairro: "Pinheiros", address: "Largo da Batata, Pinheiros", position: [-23.5668, -46.6936], criteria: ["coberto", "vigiado", "prende_o_quadro", "movimentado"], confirmations: 14 },
