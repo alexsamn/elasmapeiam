@@ -5,6 +5,7 @@ import { PINHEIROS_CENTER, statusForKind, placeSubtitle, distanceMeters, type Pl
 import { fetchPlaces } from "@/data/places";
 import { APP_DESCRIPTION, APP_NAME, pageTitle } from "@/config/app";
 import { directionsUrl, sharePlace, type ShareablePlace } from "@/lib/place-actions";
+import { searchAddress, type GeoResult } from "@/lib/geocode";
 
 const PlacesMap = lazy(() => import("@/components/map/PlacesMap"));
 
@@ -36,6 +37,10 @@ function Index() {
   const [geoDenied, setGeoDenied] = useState(false);
   const [center, setCenter] = useState({ position: PINHEIROS_CENTER, key: 0 });
   const [query, setQuery] = useState("");
+  // Busca de endereço (Enter): resultados do Nominatim e o ponto escolhido.
+  const [addr, setAddr] = useState<{ status: "idle" | "loading" | "done" | "error"; results: GeoResult[] }>({ status: "idle", results: [] });
+  const [point, setPoint] = useState<GeoResult | null>(null);
+  const addrAbort = useRef<AbortController | null>(null);
   const [user, setUser] = useState<[number, number] | null>(null);
   const [toast, setToast] = useState<{ message: string; key: number } | null>(null);
   const [allPlaces, setAllPlaces] = useState<Place[]>([]);
@@ -74,9 +79,12 @@ function Index() {
   }, [allPlaces, active, query]);
 
   // Ordena pela distância até a usuária (se ela liberou a localização) ou até o centro de Pinheiros.
-  const origin = user ?? PINHEIROS_CENTER;
+  const origin = point?.position ?? user ?? PINHEIROS_CENTER;
+  const near: [number, number] | null = point?.position ?? user;
+  const nearSuffix = point ? "daqui" : "de você";
+  const subtitleFor = (p: Place) => placeSubtitle(p, near, nearSuffix);
   const sorted = useMemo(() => [...places].sort((a, b) => distanceMeters(origin, a.position) - distanceMeters(origin, b.position)), [places, origin]);
-  const sortLabel = user ? "Perto de você" : "Perto de Pinheiros";
+  const sortLabel = point ? `Perto de ${point.label}` : user ? "Perto de você" : "Perto de Pinheiros";
   const ordered = useMemo(() => { const s = sorted.find(p => p.id === selectedId); return s ? [s, ...sorted.filter(p => p !== s)] : sorted; }, [sorted, selectedId]);
 
   // Como no Google Maps: tocar no pin abre o lugar na metade da tela; tocar no mapa baixa o painel.
@@ -89,20 +97,84 @@ function Index() {
     if (!navigator.geolocation) return fallback();
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      pos => { setGeoDenied(false); setUser([pos.coords.latitude, pos.coords.longitude]); setCenter(c => ({ position: [pos.coords.latitude, pos.coords.longitude], key: c.key + 1 })); setLocating(false); },
+      pos => { setGeoDenied(false); setPoint(null); setUser([pos.coords.latitude, pos.coords.longitude]); setCenter(c => ({ position: [pos.coords.latitude, pos.coords.longitude], key: c.key + 1 })); setLocating(false); },
       fallback, { timeout: 8000 },
     );
   }
+
+  function changeQuery(value: string) {
+    setQuery(value);
+    addrAbort.current?.abort();
+    setAddr({ status: "idle", results: [] });
+  }
+  async function submitSearch() {
+    const q = query.trim();
+    if (q.length < 3) return;
+    addrAbort.current?.abort();
+    const controller = new AbortController();
+    addrAbort.current = controller;
+    setAddr({ status: "loading", results: [] });
+    try {
+      const results = await searchAddress(q, controller.signal);
+      if (!controller.signal.aborted) setAddr({ status: "done", results });
+    } catch {
+      if (!controller.signal.aborted) setAddr({ status: "error", results: [] });
+    }
+  }
+  function chooseAddress(r: GeoResult) {
+    (document.activeElement as HTMLElement | null)?.blur(); // fecha o teclado no celular
+    setPoint(r);
+    setQuery("");
+    setAddr({ status: "idle", results: [] });
+    setSelectedId(null);
+    setSnap("peek");
+    setCenter(c => ({ position: r.position, key: c.key + 1 }));
+  }
+  function clearPoint() { setPoint(null); }
+
+  const resultRow = "flex min-h-11 w-full flex-col items-start justify-center gap-0.5 px-4 py-2 text-left font-sans hover:bg-fundo focus-visible:bg-fundo focus-visible:outline-none";
+  const searchBox = (
+    <div className="flex flex-col gap-2">
+      <form role="search" onSubmit={e => { e.preventDefault(); void submitSearch(); }}>
+        <SearchBar value={query} enterKeyHint="search" onChange={e => changeQuery(e.target.value)} />
+      </form>
+      {addr.status !== "idle" && (
+        <div className="overflow-hidden rounded-input border border-borda bg-branco shadow-search" aria-live="polite">
+          {addr.status === "loading" && <p className="px-4 py-3 font-sans text-subtitle leading-subtitle text-muted-foreground">Procurando endereço…</p>}
+          {addr.status === "error" && <p className="px-4 py-3 font-sans text-subtitle leading-subtitle text-muted-foreground">Sem conexão com a busca de endereços. Tente de novo.</p>}
+          {addr.status === "done" && addr.results.length === 0 && <p className="px-4 py-3 font-sans text-subtitle leading-subtitle text-muted-foreground">Não achei esse endereço em São Paulo.</p>}
+          {addr.status === "done" && addr.results.length > 0 && (
+            <ul aria-label="Endereços encontrados" className="divide-y divide-borda">
+              {addr.results.map(r => (
+                <li key={r.id}>
+                  <button type="button" className={resultRow} onClick={() => chooseAddress(r)}>
+                    <span className="flex items-center gap-2 text-body leading-body font-medium text-foreground"><Icon name="MapPin" className="size-4 shrink-0" />{r.label}</span>
+                    {r.detail && <span className="pl-6 text-chip leading-chip text-muted-foreground">{r.detail}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {point && addr.status === "idle" && (
+        <div className="flex items-center gap-2 self-start rounded-pill border border-borda bg-branco py-1 pl-3 pr-1 font-sans text-chip leading-chip text-foreground">
+          <Icon name="MapPin" className="size-4 shrink-0" /><span className="max-w-60 truncate">{point.label}</span>
+          <button type="button" aria-label="Limpar endereço buscado" onClick={clearPoint} className="flex size-8 items-center justify-center rounded-pill hover:bg-fundo"><Icon name="X" className="size-4" /></button>
+        </div>
+      )}
+    </div>
+  );
 
   const label = loading ? "Carregando lugares" : places.length === 1 ? "1 lugar por aqui" : `${places.length} lugares por aqui`;
   const list = (<>
         {loading ? (
           [0, 1, 2].map(i => <PlaceCard key={i} loading title="" subtitle="" onExpandedChange={() => {}} />)
         ) : ordered.length === 0 ? (
-          <EmptyState title="Nada por aqui" action={<></>}>Nenhum lugar corresponde aos filtros. Tente mudar a busca ou os filtros.</EmptyState>
+          <EmptyState title="Nada por aqui" action={<></>}>{query.trim().length >= 3 ? "Nenhum bicicletário com esse nome. Para ir até um endereço, aperte Enter (ou Buscar no teclado)." : "Nenhum lugar corresponde aos filtros. Tente mudar a busca ou os filtros."}</EmptyState>
         ) : (
           ordered.map(p => (
-            <PlaceCard key={p.id} ref={el => { if (el) cardRefs.current.set(p.id, el); else cardRefs.current.delete(p.id); }} title={p.title} subtitle={placeSubtitle(p, user)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})} address={p.address}
+            <PlaceCard key={p.id} ref={el => { if (el) cardRefs.current.set(p.id, el); else cardRefs.current.delete(p.id); }} title={p.title} subtitle={subtitleFor(p)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})} address={p.address}
               criteria={p.criteria} attention={p.attention ?? []}
               confirmations={p.confirmations} {...(p.lastConfirmed ? { lastConfirmed: p.lastConfirmed } : {})}
               onRoute={() => routeTo(p)} onShare={() => void share(p)} onDetails={() => notify("Em breve: página de detalhes")}
@@ -115,7 +187,7 @@ function Index() {
   const map = (
     <ClientOnly fallback={mapFallback}>
       <Suspense fallback={mapFallback}>
-        <PlacesMap places={places} selectedId={selectedId} onSelect={select} center={center} bottomPadding={desktop ? 0 : sheetH} topPadding={140} />
+        <PlacesMap places={places} selectedId={selectedId} onSelect={select} center={center} searchPoint={point?.position ?? null} bottomPadding={desktop ? 0 : sheetH} topPadding={140} />
       </Suspense>
     </ClientOnly>
   );
@@ -169,7 +241,7 @@ function Index() {
         <main className="relative min-w-0 flex-1">
           {map}
           <div className="absolute left-4 right-4 top-4 z-10 flex max-w-130 flex-col gap-3 pointer-events-none [&>*]:pointer-events-auto">
-            <SearchBar value={query} onChange={e => setQuery(e.target.value)} />
+            {searchBox}
             {chips}
             {banners}
           </div>
@@ -184,12 +256,12 @@ function Index() {
     <main className="relative mx-auto h-dvh w-full max-w-md md:max-w-none overflow-hidden bg-fundo">
       <ClientOnly fallback={mapFallback}>
         <Suspense fallback={mapFallback}>
-          <PlacesMap places={places} selectedId={selectedId} onSelect={select} onMapClick={() => setSnap("peek")} center={center} bottomPadding={sheetH} topPadding={snap === "peek" ? 170 : 150} />
+          <PlacesMap places={places} selectedId={selectedId} onSelect={select} onMapClick={() => setSnap("peek")} center={center} searchPoint={point?.position ?? null} bottomPadding={sheetH} topPadding={snap === "peek" ? 170 : 150} />
         </Suspense>
       </ClientOnly>
 
       <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-3 pt-4 pointer-events-none [&>*]:pointer-events-auto">
-        <div className="px-4"><SearchBar value={query} onChange={e => setQuery(e.target.value)} /></div>
+        <div className="px-4">{searchBox}</div>
         <FilterChipRow aria-label="Filtrar lugares">
           <FilterChip surface="map" icon="Bike" selected={active.includes("parking")} onSelectedChange={on => setActive(a => (on ? [...a, "parking"] : a.filter(k => k !== "parking")))}>Bicicletários</FilterChip>
           <FilterChip surface="map" icon="Wrench" selected={false} onSelectedChange={() => setShopInfo(true)}>Oficinas</FilterChip>
@@ -215,7 +287,7 @@ function Index() {
 
       <BottomSheet ref={sheetRef} placement="static" snap={snap} onSnapChange={setSnap} label={selected ? selected.title : label} sortLabel={sortLabel} scrollResetKey={selectedId} className="z-20 md:mx-auto md:max-w-120"
         {...(selected ? { header: (
-          <PlaceSummary title={selected.title} subtitle={placeSubtitle(selected, user)} status={selected.status ?? statusForKind[selected.kind]} {...(selected.statusLabel ? { statusLabel: selected.statusLabel } : {})}
+          <PlaceSummary title={selected.title} subtitle={subtitleFor(selected)} status={selected.status ?? statusForKind[selected.kind]} {...(selected.statusLabel ? { statusLabel: selected.statusLabel } : {})}
             confirmations={selected.confirmations} {...(selected.lastConfirmed ? { lastConfirmed: selected.lastConfirmed } : {})}
             actions={<Button variant="icon" aria-label="Fechar e voltar à lista" title="Fechar" onClick={closePlace}><Icon name="X" /></Button>} />
         ) } : {})}>
@@ -224,7 +296,7 @@ function Index() {
             onRoute={() => routeTo(selected)} onShare={() => void share(selected)} onDetails={() => notify("Em breve: página de detalhes")} />
           {sorted.length > 1 && <h3 className="mt-4 font-sans text-title leading-body font-semibold">Outros bicicletários</h3>}
           {sorted.filter(p => p.id !== selected.id).map(p => (
-            <PlaceCard key={p.id} title={p.title} subtitle={placeSubtitle(p, user)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})}
+            <PlaceCard key={p.id} title={p.title} subtitle={subtitleFor(p)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})}
               confirmations={p.confirmations} {...(p.lastConfirmed ? { lastConfirmed: p.lastConfirmed } : {})}
               expanded={false} onExpandedChange={open => { if (open) select(p.id); }} />
           ))}
