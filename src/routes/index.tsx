@@ -1,7 +1,7 @@
 import { createFileRoute, ClientOnly, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { SearchBar, FilterChip, FilterChipRow, MapControls, BottomSheet, PlaceCard, PlaceDetails, PlaceSummary, Button, Icon, Skeleton, InfoBanner, EmptyState, Toast, FixedNotice } from "@/design-system/elasmapeiam-library-4342f4";
-import { PINHEIROS_CENTER, statusForKind, placeSubtitle, distanceMeters, type Place } from "@/data/mock-places";
+import { START_CENTER, START_LABEL, statusForKind, placeSubtitle, distanceMeters, type Place } from "@/data/mock-places";
 import { fetchPlaces } from "@/data/places";
 import { APP_DESCRIPTION, APP_NAME, pageTitle } from "@/config/app";
 import { directionsUrl, sharePlace, type ShareablePlace } from "@/lib/place-actions";
@@ -35,7 +35,7 @@ function Index() {
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
   const [geoDenied, setGeoDenied] = useState(false);
-  const [center, setCenter] = useState({ position: PINHEIROS_CENTER, key: 0 });
+  const [center, setCenter] = useState({ position: START_CENTER, key: 0 });
   const [query, setQuery] = useState("");
   // Busca de endereço (Enter): resultados do Nominatim e o ponto escolhido.
   const [addr, setAddr] = useState<{ status: "idle" | "loading" | "done" | "error"; results: GeoResult[] }>({ status: "idle", results: [] });
@@ -44,6 +44,7 @@ function Index() {
   const [user, setUser] = useState<[number, number] | null>(null);
   const [toast, setToast] = useState<{ message: string; key: number } | null>(null);
   const [allPlaces, setAllPlaces] = useState<Place[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const navigate = useNavigate();
   const goContribute = () => void navigate({ to: "/contribuir" });
   function notify(message: string) { setToast(previous => ({ message, key: (previous?.key ?? 0) + 1 })); }
@@ -71,20 +72,20 @@ function Index() {
   }, []);
   useEffect(() => { const t = setTimeout(() => sheetRef.current && setSheetH(Math.max(0, (sheetRef.current.offsetParent?.getBoundingClientRect().bottom ?? 0) - sheetRef.current.getBoundingClientRect().top)), 350); return () => clearTimeout(t); }, [snap]);
 
-  useEffect(() => { let alive = true; fetchPlaces().then(r => { if (!alive) return; setAllPlaces(r.places); setLoading(false); }); return () => { alive = false; }; }, []);
+  useEffect(() => { let alive = true; fetchPlaces().then(r => { if (!alive) return; setAllPlaces(r.places); setLoadError(r.source === "error"); setLoading(false); }); return () => { alive = false; }; }, []);
 
   const places = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("pt-BR");
     return allPlaces.filter(p => (active.some(f => kindsFor[f].includes(p.kind))) && (!q || `${p.title} ${p.subtitle} ${p.address}`.toLocaleLowerCase("pt-BR").includes(q)));
   }, [allPlaces, active, query]);
 
-  // Ordena pela distância até a usuária (se ela liberou a localização) ou até o centro de Pinheiros.
-  const origin = point?.position ?? user ?? PINHEIROS_CENTER;
+  // Ordena pela distância até a usuária (se ela liberou a localização) ou até o centro inicial (Av. Paulista).
+  const origin = point?.position ?? user ?? START_CENTER;
   const near: [number, number] | null = point?.position ?? user;
   const nearSuffix = point ? "daqui" : "de você";
   const subtitleFor = (p: Place) => placeSubtitle(p, near, nearSuffix);
   const sorted = useMemo(() => [...places].sort((a, b) => distanceMeters(origin, a.position) - distanceMeters(origin, b.position)), [places, origin]);
-  const sortLabel = point ? `Perto de ${point.label}` : user ? "Perto de você" : "Perto de Pinheiros";
+  const sortLabel = point ? `Perto de ${point.label}` : user ? "Perto de você" : `Perto da ${START_LABEL}`;
   const ordered = useMemo(() => { const s = sorted.find(p => p.id === selectedId); return s ? [s, ...sorted.filter(p => p !== s)] : sorted; }, [sorted, selectedId]);
 
   // Como no Google Maps: tocar no pin abre o lugar na metade da tela; tocar no mapa baixa o painel.
@@ -93,7 +94,7 @@ function Index() {
   const selected = !desktop && selectedId ? places.find(p => p.id === selectedId) ?? null : null;
 
   function locate() {
-    const fallback = () => { setGeoDenied(true); setCenter(c => ({ position: PINHEIROS_CENTER, key: c.key + 1 })); setLocating(false); };
+    const fallback = () => { setGeoDenied(true); setCenter(c => ({ position: START_CENTER, key: c.key + 1 })); setLocating(false); };
     if (!navigator.geolocation) return fallback();
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
@@ -166,10 +167,12 @@ function Index() {
     </div>
   );
 
-  const label = loading ? "Carregando lugares" : places.length === 1 ? "1 lugar por aqui" : `${places.length} lugares por aqui`;
+  const label = loading ? "Carregando lugares" : loadError ? "Não conseguimos carregar os lugares" : places.length === 1 ? "1 lugar por aqui" : `${places.length} lugares por aqui`;
   const list = (<>
         {loading ? (
           [0, 1, 2].map(i => <PlaceCard key={i} loading title="" subtitle="" onExpandedChange={() => {}} />)
+        ) : loadError ? (
+          <EmptyState title="Não conseguimos carregar os lugares" action={<></>}>Confira sua internet e tente de novo em instantes.</EmptyState>
         ) : ordered.length === 0 ? (
           <EmptyState title="Nada por aqui" action={<></>}>{query.trim().length >= 3 ? "Nenhum bicicletário com esse nome. Para ir até um endereço, aperte Enter (ou Buscar no teclado)." : "Nenhum lugar corresponde aos filtros. Tente mudar a busca ou os filtros."}</EmptyState>
         ) : (
@@ -194,7 +197,7 @@ function Index() {
   const toastEl = toast && <Toast key={toast.key} open onOpenChange={open => { if (!open) setToast(null); }}>{toast.message}</Toast>;
   const banners = (<>
     {shopInfo && <InfoBanner title="Oficinas chegam em breve" onDismiss={() => setShopInfo(false)}>Por enquanto o mapa mostra só bicicletários.</InfoBanner>}
-    {geoDenied && <InfoBanner title="Não conseguimos sua localização" onDismiss={() => setGeoDenied(false)}>Mostrando Pinheiros. Libere a localização no navegador para ver lugares perto de você.</InfoBanner>}
+    {geoDenied && <InfoBanner title="Não conseguimos sua localização" onDismiss={() => setGeoDenied(false)}>Mostrando a região da Av. Paulista. Libere a localização no navegador para ver lugares perto de você.</InfoBanner>}
   </>);
   const chips = (
     <FilterChipRow aria-label="Filtrar lugares" className={desktop ? "px-0" : undefined}>
@@ -228,13 +231,13 @@ function Index() {
           <button type="button" aria-label="Fechar menu" className="absolute inset-0 z-20 cursor-default bg-preto/10" onClick={() => setMenuOpen(false)} />
           <div role="dialog" aria-label="Menu" className="absolute bottom-0 left-18 top-0 z-30 flex w-64 flex-col gap-6 border-r border-borda bg-branco p-6 shadow-lg">
             <p className="font-sans text-title leading-body font-semibold">{APP_NAME}</p>
-            <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
+            <FixedNotice variant="privacy">Informações enviadas por ciclistas, com a data do último relato. Confira no local.</FixedNotice>
           </div>
         </>)}
         <section aria-label={label} className="flex w-100 shrink-0 flex-col overflow-y-auto border-r border-borda bg-fundo px-4 py-6">
           <header className="mb-5 flex flex-wrap items-center justify-between gap-2"><h2 className="font-sans text-title leading-body font-semibold">{label}</h2><span className="font-sans text-subtitle leading-subtitle text-muted-foreground">{sortLabel}</span></header>
           <div className="flex flex-col gap-3 [&>*]:shrink-0">
-            <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
+            <FixedNotice variant="privacy">Informações enviadas por ciclistas, com a data do último relato. Confira no local.</FixedNotice>
             {list}
           </div>
         </section>
@@ -266,7 +269,7 @@ function Index() {
           <FilterChip surface="map" icon="Bike" selected={active.includes("parking")} onSelectedChange={on => setActive(a => (on ? [...a, "parking"] : a.filter(k => k !== "parking")))}>Bicicletários</FilterChip>
           <FilterChip surface="map" icon="Wrench" selected={false} onSelectedChange={() => setShopInfo(true)}>Oficinas</FilterChip>
         </FilterChipRow>
-        <p className="mx-4 self-start rounded-pill border border-borda bg-branco px-3 py-1 font-sans text-chip leading-chip text-foreground">Demonstração · lugares e indicações fictícios</p>
+        <p className="mx-4 self-start rounded-pill border border-borda bg-branco px-3 py-1 font-sans text-chip leading-chip text-foreground">Relatos de ciclistas · confira no local</p>
         {shopInfo && (
           <div className="px-4">
             <InfoBanner title="Oficinas chegam em breve" onDismiss={() => setShopInfo(false)}>
@@ -277,7 +280,7 @@ function Index() {
         {geoDenied && (
           <div className="px-4">
             <InfoBanner title="Não conseguimos sua localização" onDismiss={() => setGeoDenied(false)}>
-              Mostrando Pinheiros. Libere a localização no navegador para ver lugares perto de você.
+              Mostrando a região da Av. Paulista. Libere a localização no navegador para ver lugares perto de você.
             </InfoBanner>
           </div>
         )}
@@ -301,7 +304,7 @@ function Index() {
               expanded={false} onExpandedChange={open => { if (open) select(p.id); }} />
           ))}
         </>) : (<>
-          <FixedNotice variant="privacy">Versão de demonstração: lugares e indicações são fictícios.</FixedNotice>
+          <FixedNotice variant="privacy">Informações enviadas por ciclistas, com a data do último relato. Confira no local.</FixedNotice>
           {list}
         </>)}
       </BottomSheet>

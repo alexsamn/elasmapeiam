@@ -1,5 +1,5 @@
 import { describeCriteria } from "@/design-system/elasmapeiam-library-4342f4";
-import { mockPlaces, type Place } from "./mock-places";
+import type { Place } from "./mock-places";
 import { APP_NAME } from "@/config/app";
 
 /**
@@ -23,17 +23,21 @@ interface LugarRow {
   lng: number;
   criterios: Record<string, unknown> | null;
   status: "funcionando" | "fechado" | "quebrado" | "nao_existe_mais" | "desconhecido";
+  tipo_vaga?: "bicicletario" | "estacionamento" | "paraciclo" | "sem_estrutura" | null;
   confirmacoes: number;
   ultima_confirmacao: string | null;
 }
 
 const dateFormat = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" });
 
+/** Rótulo do tipo de vaga no card. Sem tipo informado, fica genérico. */
+export const vagaLabels = { bicicletario: "Bicicletário", estacionamento: "Estacionamento", paraciclo: "Paraciclo", sem_estrutura: "Sem estrutura" } as const;
+
 const closedLabels = { fechado: "Fechado", quebrado: "Quebrado", nao_existe_mais: "Não existe mais" } as const;
 
 export function rowToPlace(row: LugarRow): Place {
   const isShop = row.tipo === "oficina";
-  const type = isShop ? "Oficina" : "Bicicletário";
+  const type = isShop ? "Oficina" : row.tipo_vaga ? vagaLabels[row.tipo_vaga] : "Vaga para bike";
   const { confirmed, attention } = describeCriteria(row.criterios);
   const closed = row.status === "fechado" || row.status === "quebrado" || row.status === "nao_existe_mais";
   const working = row.status === "funcionando" && row.confirmacoes > 0;
@@ -63,20 +67,16 @@ export function rowToPlace(row: LugarRow): Place {
   };
 }
 
-export interface PlacesResult { places: Place[]; source: "database" | "demo" }
+export interface PlacesResult { places: Place[]; source: "database" | "error" }
 
 /** Oficinas ficam fora do mapa por enquanto (validação de 16/11). */
 const onlyParking = (places: Place[]) => places.filter(p => p.kind !== "shop");
 
-/** Dados de demonstração com o mesmo rótulo de status do banco. */
-const demoPlaces = (): Place[] =>
-  onlyParking(mockPlaces).map(p => (p.statusLabel || p.status ? p : { ...p, statusLabel: p.kind === "safe" ? "Funcionando" : "Não confirmado" }));
-
-/** Bicicletários publicados. Se o banco não estiver configurado ou falhar, usa os dados de demonstração. */
+/** Lugares publicados. Se o banco falhar, devolve lista vazia com erro (nunca dados fictícios). */
 export async function fetchPlaces(): Promise<PlacesResult> {
-  if (!backendConfigured) return { places: demoPlaces(), source: "demo" };
+  if (!backendConfigured) return { places: [], source: "error" };
   try {
-    const select = "id,nome,tipo,bairro,endereco,lat,lng,criterios,status,confirmacoes,ultima_confirmacao";
+    const select = "id,nome,tipo,tipo_vaga,bairro,endereco,lat,lng,criterios,status,confirmacoes,ultima_confirmacao";
     const res = await fetch(`${supabaseUrl}/rest/v1/lugares?select=${select}&status=neq.nao_existe_mais&order=nome`, {
       headers: { apikey: supabaseKey! },
       signal: AbortSignal.timeout(8000),
@@ -85,8 +85,8 @@ export async function fetchPlaces(): Promise<PlacesResult> {
     const rows = (await res.json()) as LugarRow[];
     return { places: onlyParking(rows.map(rowToPlace)), source: "database" };
   } catch (error) {
-    console.error(`[${APP_NAME}] usando dados de demonstração:`, error);
-    return { places: demoPlaces(), source: "demo" };
+    console.error(`[${APP_NAME}] não foi possível carregar os lugares:`, error);
+    return { places: [], source: "error" };
   }
 }
 
