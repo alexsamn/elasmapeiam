@@ -4,8 +4,10 @@ import { Button, FixedNotice, Input, Textarea, Toast, Icon } from "@/design-syst
 import type { Place } from "@/data/mock-places";
 import { fetchPlaces, sendReport } from "@/data/places";
 import { pageTitle } from "@/config/app";
+import { lugaresParaRelato, parseContribuirSearch } from "@/lib/contribuir";
 
 export const Route = createFileRoute("/contribuir")({
+  validateSearch: parseContribuirSearch,
   head: () => ({
     meta: [
       { title: pageTitle("Contribuir") },
@@ -21,9 +23,12 @@ const MAX = 1000;
 
 function Contribuir() {
   const navigate = useNavigate();
+  const { lugar: lugarInicial } = Route.useSearch();
   const ids = { lugar: useId(), relato: useId(), ajuda: useId(), contador: useId() };
   const [lugares, setLugares] = useState<Place[]>([]);
-  const [lugar, setLugar] = useState("");
+  const [lugar, setLugar] = useState(lugarInicial ?? "");
+  // Vindo do card, o lugar aparece fixo; "Trocar lugar" volta para a lista.
+  const [trocando, setTrocando] = useState(false);
   const [lugarTexto, setLugarTexto] = useState("");
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -32,9 +37,15 @@ function Contribuir() {
 
   useEffect(() => {
     let alive = true;
-    fetchPlaces().then(r => { if (alive) setLugares(r.places.filter(p => p.type === "Bicicletário")); });
+    fetchPlaces().then(r => { if (alive) setLugares(lugaresParaRelato(r.places)); });
     return () => { alive = false; };
   }, []);
+
+  // Só mostra o lugar fixo se o id do link existir na lista; senão, a lista normal.
+  const fixo = !trocando && lugarInicial ? lugares.find(p => p.id === lugarInicial) ?? null : null;
+  useEffect(() => {
+    if (lugarInicial && lugares.length > 0 && !lugares.some(p => p.id === lugarInicial)) setLugar(prev => (prev === lugarInicial ? "" : prev));
+  }, [lugarInicial, lugares]);
 
   const tamanho = texto.trim().length;
   const outro = lugar === OUTRO;
@@ -76,6 +87,21 @@ function Contribuir() {
         </p>
 
         <form onSubmit={enviar} className="flex flex-col gap-5" noValidate>
+          {fixo ? (
+          <div className="space-y-2">
+            <p className="font-sans text-subtitle leading-subtitle font-semibold">Lugar</p>
+            <div className="flex items-center justify-between gap-3 rounded-input border border-borda bg-branco px-4 py-3">
+              <p className="min-w-0 font-sans text-body leading-body">
+                <span className="block font-semibold break-words">{fixo.title}</span>
+                <span className="block text-muted-foreground">{fixo.bairro}</span>
+              </p>
+              <button type="button" onClick={() => { setTrocando(true); setLugar(""); }}
+                className="min-h-11 shrink-0 rounded-pill px-3 font-sans text-subtitle leading-subtitle font-semibold underline hover:bg-rosa focus-visible:outline-2 focus-visible:outline-preto">
+                Trocar lugar
+              </button>
+            </div>
+          </div>
+          ) : (
           <div className="space-y-2">
             <label htmlFor={ids.lugar} className="block font-sans text-subtitle leading-subtitle font-semibold">Qual lugar?</label>
             <select
@@ -89,6 +115,7 @@ function Contribuir() {
               <option value={OUTRO}>Não está no mapa</option>
             </select>
           </div>
+          )}
 
           {outro && (
             <Input
