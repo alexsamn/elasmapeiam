@@ -47,6 +47,8 @@ function Index() {
   const [loadError, setLoadError] = useState(false);
   const navigate = useNavigate();
   const goContribute = () => void navigate({ to: "/contribuir" });
+  // Do card: abre Contribuir com o lugar já escolhido.
+  const contributeButton = (id: string) => <Button variant="primary" className="w-full border-0" onClick={() => void navigate({ to: "/contribuir", search: { lugar: id } })}>Contribuir</Button>;
   function notify(message: string) { setToast(previous => ({ message, key: (previous?.key ?? 0) + 1 })); }
   function routeTo(place: ShareablePlace) { window.open(directionsUrl(place), "_blank", "noopener,noreferrer"); }
   async function share(place: ShareablePlace) {
@@ -180,7 +182,7 @@ function Index() {
             <PlaceCard key={p.id} ref={el => { if (el) cardRefs.current.set(p.id, el); else cardRefs.current.delete(p.id); }} title={p.title} subtitle={subtitleFor(p)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})} address={p.address}
               criteria={p.criteria} attention={p.attention ?? []}
               confirmations={p.confirmations} {...(p.lastConfirmed ? { lastConfirmed: p.lastConfirmed } : {})}
-              onRoute={() => routeTo(p)} onShare={() => void share(p)} onDetails={() => notify("Em breve: página de detalhes")}
+              onRoute={() => routeTo(p)} onShare={() => void share(p)} actions={contributeButton(p.id)}
               expanded={p.id === selectedId} onExpandedChange={open => (open ? select(p.id) : setSelectedId(null))} />
           ))
         )}
@@ -296,7 +298,7 @@ function Index() {
         ) } : {})}>
         {selected ? (<>
           <PlaceDetails criteria={selected.criteria} attention={selected.attention ?? []} address={selected.address} confirmations={selected.confirmations}
-            onRoute={() => routeTo(selected)} onShare={() => void share(selected)} onDetails={() => notify("Em breve: página de detalhes")} />
+            onRoute={() => routeTo(selected)} onShare={() => void share(selected)} actions={contributeButton(selected.id)} />
           {sorted.length > 1 && <h3 className="mt-4 font-sans text-title leading-body font-semibold">Outros bicicletários</h3>}
           {sorted.filter(p => p.id !== selected.id).map(p => (
             <PlaceCard key={p.id} title={p.title} subtitle={subtitleFor(p)} status={p.status ?? statusForKind[p.kind]} {...(p.statusLabel ? { statusLabel: p.statusLabel } : {})}
