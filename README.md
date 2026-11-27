@@ -73,24 +73,6 @@ São 33 lugares reais, vindos de uma lista do Google Maps feita por uma ciclista
 | Publicação | Vercel |
 | Design system | ElasMapeiam Library (em `src/design-system/`) |
 
-O protótipo começou no Lovable. Desde 16/11/2026, o código é mantido só neste repositório.
-
-```
-src/
-  routes/        index (mapa) e contribuir
-  components/    mapa e formulário de avaliação
-  design-system/ ElasMapeiam Library (tokens, componentes, marcadores)
-  data/          lugares (Supabase) e tipos
-  lib/           avaliação, busca de endereço, área visível do mapa
-  test/          testes (Vitest)
-supabase/
-  functions/     enviar-relato, processar-relato, _shared (prompts, http)
-  migrations/    schema, RLS, gatilhos e funções
-  README.md      detalhes do backend e consultas úteis
-```
-
-Detalhes do backend em [`supabase/README.md`](supabase/README.md).
-
 ---
 
 ## Segurança e privacidade
