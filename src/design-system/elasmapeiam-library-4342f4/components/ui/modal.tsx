@@ -1,0 +1,7 @@
+import {forwardRef,useEffect,useRef,useImperativeHandle,useId,type DialogHTMLAttributes} from "react";
+import {cn} from "../../lib/utils";
+import {Button} from "./button";
+import {Icon} from "./icon";
+export interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>,"open"|"title">{open:boolean;onOpenChange:(open:boolean)=>void;title:string;size?:"small"|"large"}
+/** Native modal dialog with focus trapping, Escape and focus restoration. */
+export const Modal=forwardRef<HTMLDialogElement,ModalProps>(({open,onOpenChange,title,size="small",children,className,onCancel,onClose,...props},ref)=>{const local=useRef<HTMLDialogElement>(null);const id=useId();useImperativeHandle(ref,()=>local.current as HTMLDialogElement);useEffect(()=>{const dialog=local.current;if(!dialog)return;if(open&&!dialog.open)dialog.showModal();else if(!open&&dialog.open)dialog.close();},[open]);return <dialog ref={local} data-size={size} aria-labelledby={id} className={cn("system-modal",className)} onCancel={e=>{onCancel?.(e);if(!e.defaultPrevented)onOpenChange(false);}} onClose={e=>{onClose?.(e);onOpenChange(false);}} {...props}><div className="mb-6 flex items-start justify-between gap-4"><h2 id={id} className="font-display text-h1 leading-h1 font-regular">{title}</h2><Button variant="icon" aria-label="Fechar janela" onClick={()=>onOpenChange(false)}><Icon name="X"/></Button></div>{children}</dialog>});

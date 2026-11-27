@@ -1,0 +1,257 @@
+@import "tw-animate-css";
+@custom-variant dark (&:where(.dark, .dark *));
+@theme inline {
+  --color-branco: var(--branco); --color-preto: var(--preto);
+  --color-rosa: var(--rosa); --color-amarelo: var(--amarelo); --color-verde: var(--verde); --color-azul: var(--azul); --color-lilas: var(--lilas); --color-abacate: var(--abacate);
+  --color-background: var(--background); --color-foreground: var(--foreground);
+  --color-card: var(--card); --color-card-foreground: var(--foreground);
+  --color-popover: var(--card); --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground); --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary); --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent); --color-accent-foreground: var(--preto);
+  --color-destructive: var(--destructive); --color-destructive-foreground: var(--branco);
+  --color-border: var(--border); --color-input: var(--border); --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar); --color-sidebar-foreground: var(--foreground);
+  --color-safe:var(--safe); --color-shop:var(--shop); --color-unconfirmed:var(--unconfirmed);
+  --color-pink-soft:var(--pink-soft); --color-lilac-soft:var(--lilac-soft);
+  --color-safe-soft:var(--safe-soft); --color-shop-soft:var(--shop-soft); --color-unconfirmed-soft:var(--unconfirmed-soft);
+  --color-safe-dot:var(--safe-dot); --color-shop-dot:var(--shop-dot); --color-unconfirmed-dot:var(--unconfirmed-dot);
+  --color-criteria:var(--criteria); --color-disabled:var(--disabled); --color-disabled-foreground:var(--disabled-foreground);
+  --color-fundo:var(--fundo); --color-borda:var(--borda);
+  --color-vermelho:var(--vermelho); --color-vermelho-forte:var(--vermelho-forte); --color-alert:var(--alert);
+  --color-safe-tint:var(--safe-tint); --color-lilas-soft:var(--lilas-soft); --color-lilas-bg:var(--lilas-bg);
+  --color-rosa-soft:var(--rosa-soft); --color-lilas-button:var(--lilas-button); --color-lilas-dot:var(--lilas-dot);
+  --color-accent-hover:var(--accent-hover); --color-error:var(--error); --color-skeleton:var(--skeleton);
+  --color-handle:var(--handle); --color-checkbox-border:var(--checkbox-border);
+  --radius-card:var(--radius-large); --radius-input:var(--radius-medium); --radius-pill:var(--pill-radius);
+  --radius-checkbox:var(--checkbox-radius); --radius-type:var(--type-radius);
+  --radius-feedback:var(--type-radius);
+  --color-feedback-muted:var(--feedback-muted);
+  --text-notice:13px; --leading-notice:20px;
+  --text-empty:28px; --leading-empty:34px;
+  --spacing-feedback-dot:14px; --spacing-feedback-icon:18px;
+  --spacing-feedback-circle:28px; --spacing-error-circle:44px;
+  --spacing-feedback-padding:14px;
+  --shadow-elevated:var(--shadow-soft);
+  --shadow-map-chip:var(--map-chip-shadow);
+  --shadow-fab:var(--fab-shadow);
+  --shadow-search:var(--search-shadow);
+  --shadow-location:var(--location-shadow);
+  --radius-sm: var(--radius-small); --radius-md: var(--radius-medium); --radius-lg: var(--radius-large);
+  --font-sans:"Inter", system-ui, sans-serif;
+  --font-display:"Archivo Black", "Inter", sans-serif;
+  --font-mono:"IBM Plex Mono", monospace;
+  --text-chip:12px;
+  --leading-chip:16px;
+  --leading-display:var(--display-leading); --leading-label:var(--label-leading);
+  --text-subtitle:14px;
+  --leading-subtitle:20px;
+  --text-body:16px;
+  --leading-body:24px;
+  --text-title:18px;
+  --text-h1:24px;
+  --leading-h1:30px;
+  --text-display:32px;
+  --font-weight-regular:400;
+  --font-weight-medium:500;
+  --font-weight-semibold:600;
+  --spacing-control:var(--control-height); --spacing-fab:var(--fab-size);
+  --spacing-place-skeleton-title:200px;
+  --spacing-place-skeleton-subtitle:140px;
+  --spacing-place-skeleton-chip:72px;
+  --spacing-1:4px;
+  --spacing-2:8px;
+  --spacing-3:12px;
+  --spacing-4:16px;
+  --spacing-5:20px;
+  --spacing-6:24px;
+  --spacing-8:32px;
+  --spacing-10:40px;
+  --spacing-12:48px;
+  --spacing-20:80px;
+  --container-content:1280px;
+}
+:root {
+  /* Neutrals */
+  --foreground: #111111;
+  --muted-foreground: #6B6B6B;
+  --feedback-muted: #6B6B6B;
+  --fundo: #F5F5F3;
+  --borda: #E6E6E3;
+  --branco: #FFFFFF;
+  --preto: #000000;
+
+  /* Palette */
+  --rosa: #F7B2BF;
+  --lilas: #D4B0E5;
+  --verde: #A7DBC4;
+  --azul: #AFC6E5;
+  --amarelo: #FADEB8;
+  --abacate: #ACBB69;
+  --vermelho: #F28B82;
+  --vermelho-forte: #C8372D;
+
+  /* Semantic — never change meaning */
+  --safe: var(--verde);          /* safe bike parking */
+  --shop: var(--azul);           /* recommended repair shop */
+  --unconfirmed: var(--amarelo); /* unconfirmed / pending confirmation */
+  --alert: var(--vermelho);      /* theft reports, aggregated areas only */
+  --accent: var(--rosa);         /* FAB, hover. Text on it always black */
+
+  /* Soft backgrounds (pre-mixed over white — replaces Paper's color-mix) */
+  --safe-soft: #D7EFE4;          /* chip "Seguro" (verde 45%) */
+  --safe-tint: #E5F4ED;          /* selected criterion / type (verde 30%) */
+  --shop-soft: #D7E5F3;          /* chip "Oficina indicada" (azul 45%) */
+  --unconfirmed-soft: #FBE8CD;   /* chip "Não confirmado" (amarelo 70%) */
+  --lilas-soft: #ECDBF3;         /* chip "Pendente" (lilás 45%) */
+  --lilas-bg: #EFE3F6;           /* info banner */
+  --rosa-soft: #FCE0E5;          /* icon button "Rota" (rosa 40%) */
+  --lilas-button: #EEDFF5;       /* icon button "Compartilhar" (lilás 40%) */
+
+  /* Chip dots (strong versions) */
+  --safe-dot: #3E9E74;
+  --shop-dot: #4A73AD;
+  --unconfirmed-dot: #C98A2E;
+  --lilas-dot: #8B5BA8;
+
+  /* States */
+  --primary-hover: #262626;
+  --accent-hover: #E89AAA;
+  --error: #B3261E;
+  --skeleton: #EEEEEC;
+  --handle: #C9C9C5;
+  --checkbox-border: #8A8A86;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Archivo Black", "Inter", sans-serif; /* splash, onboarding, empty states only */
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --text-chip: 12px;      --leading-chip: 16px;
+  --text-subtitle: 14px;  --leading-subtitle: 20px;
+  --text-body: 16px;      --leading-body: 24px;
+  --text-title: 18px;     /* line-height 24px */
+  --text-h1: 24px;        --leading-h1: 30px;
+  --text-display: 32px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Spacing (4px base) */
+  --spacing-1: 4px;  --spacing-2: 8px;   --spacing-3: 12px;
+  --spacing-4: 16px; --spacing-5: 20px;  --spacing-6: 24px;
+  --spacing-8: 32px; --spacing-10: 40px; --spacing-12: 48px;
+  --spacing-20: 80px;
+
+  /* Radius */
+  --radius-input: 12px;
+  --radius-card: 24px;
+  --radius-pill: 999px;
+
+  /* Layout */
+  --container-content: 1280px;
+  /* breakpoints: mobile 479px · tablet 768px · desktop 992px · wide 1440px */
+}
+
+/* Compatibility roles preserve the current component API. */
+:root {
+  --background:var(--fundo); --border:var(--borda); --card:var(--branco);
+  --primary:var(--preto); --primary-foreground:var(--branco);
+  --destructive:var(--error); --radius:12px;
+  --secondary:var(--fundo); --muted:var(--skeleton); --ring:var(--preto); --sidebar:var(--branco);
+  --pink-soft:var(--rosa-soft); --lilac-soft:var(--lilas-soft); --criteria:var(--safe-tint);
+  --disabled:var(--borda); --disabled-foreground:var(--muted-foreground);
+  --radius-small:var(--radius-input); --radius-medium:var(--radius-input); --radius-large:var(--radius-card);
+  --pill-radius:999px; --display-leading:38px; --label-leading:22px; --caption-leading:18px;
+  --font-body:var(--font-sans); --font-splash:var(--font-display); --font-code:var(--font-mono);
+  --text-display-mobile:var(--text-display); --text-heading:var(--text-h1);
+  --shadow-soft:0 8px 24px #00000014;
+  --map-chip-shadow:0 2px 8px color-mix(in srgb,var(--preto) 8%,transparent);
+  --fab-shadow:0 8px 24px color-mix(in srgb,var(--preto) 8%,transparent);
+  --search-shadow:0 4px 16px color-mix(in srgb,var(--preto) 8%,transparent);
+  --location-shadow:0 4px 16px color-mix(in srgb,var(--preto) 10%,transparent);
+  --sheet-shadow:0 -8px 24px color-mix(in srgb,var(--preto) 8%,transparent);
+  --control-height:52px; --fab-size:56px; --pin-size:36px; --cluster-size:40px; --chip-height:28px; --filter-height:40px;
+  --checkbox-radius:6px; --type-radius:16px;
+  --spacing:4px; --page-space:var(--spacing-12); --page-space-mobile:var(--spacing-6); --nav-width:232px; --content-width:var(--container-content);
+}
+.dark { --background:#171717; --foreground:#f4f4f2; --card:#202020; --secondary:#2c2c2c; --muted:#242424; --muted-foreground:#b0b0ad; --accent:var(--rosa); --border:#383838; --sidebar:#1c1c1c; --ring:var(--branco); --destructive:var(--error); }
+@layer base {
+  * { border-color:var(--border); letter-spacing:0; }
+  body { margin:0; background:var(--background); color:var(--foreground); font-family:var(--font-sans); font-size:var(--text-body); line-height:var(--leading-body); }
+  a,button,input,textarea { -webkit-tap-highlight-color:transparent; }
+  a:focus-visible { outline:2px solid var(--ring); outline-offset:4px; }
+  ::selection { background:var(--rosa); color:var(--preto); }
+}
+.system-switch::before { content:""; display:block; height:calc(100% - var(--spacing)); aspect-ratio:1; border-radius:var(--radius-pill); background:var(--card); margin:calc(var(--spacing)/2); transition:transform 150ms ease; }
+.system-switch:checked::before { transform:translateX(100%); background:var(--preto); }
+.showcase-shell { min-height:100vh; }
+.showcase-nav { width:var(--nav-width); position:fixed; inset:0 auto 0 0; display:flex; flex-direction:column; background:var(--sidebar); border-right:1px solid var(--border); padding:calc(var(--spacing)*8) calc(var(--spacing)*5); z-index:20; }
+.showcase-main { margin-left:var(--nav-width); }
+.showcase-top { height:calc(var(--spacing)*18); display:flex; align-items:center; justify-content:space-between; padding:0 var(--page-space); border-bottom:1px solid var(--border); }
+.showcase-content { max-width:var(--content-width); padding:var(--page-space); margin:auto; }
+.display-title { font-family:var(--font-display); font-size:var(--text-display); line-height:var(--display-leading); font-weight:var(--font-weight-regular); }
+.page-title { font-family:var(--font-display); font-size:var(--text-h1); line-height:var(--leading-h1); font-weight:var(--font-weight-regular); }
+.caption { font-family:var(--font-sans); font-size:var(--text-chip); line-height:var(--caption-leading); color:var(--muted-foreground); }
+.preview-pattern { background-color:var(--muted); background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px); background-size:calc(var(--spacing)*6) calc(var(--spacing)*6); }
+.brand-art { display:grid; grid-template-columns:repeat(6,1fr); height:calc(var(--spacing)*42); align-items:center; overflow:hidden; }
+.brand-art .petal { aspect-ratio:1; width:calc(100% + var(--spacing)*3); border-radius:var(--radius-pill); margin-left:calc(var(--spacing)*-1.5); }
+.specimen-focus { outline:2px solid var(--ring); outline-offset:3px; }
+.specimen-hover { background:var(--primary-hover); }
+.specimen-active { background:var(--primary-hover); box-shadow:inset 0 0 0 2px var(--ring); }
+@media(max-width:1023px) { :root { --page-space:32px; --nav-width:200px; } .display-title {font-size:var(--text-display);} }
+@media(max-width:767px) { .showcase-nav {display:none;} .showcase-nav.nav-open {display:flex;width:min(280px,85vw);box-shadow:var(--shadow-soft);} .showcase-main {margin-left:0;} .showcase-top {padding:0 var(--page-space-mobile);} .showcase-content {padding:32px var(--page-space-mobile);} .display-title {font-size:var(--text-display-mobile);} .page-title {font-size:var(--text-heading);} .brand-art {height:120px;} }
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after {animation:none!important; transition:none!important; scroll-behavior:auto!important;} }
+
+/* Compatibility typography helpers use the same canonical tokens as utilities. */
+.type-display {font-family:var(--font-display);font-size:var(--text-display);line-height:var(--display-leading);font-weight:var(--font-weight-regular);}
+.type-h1 {font-family:var(--font-display);font-size:var(--text-h1);line-height:var(--leading-h1);font-weight:var(--font-weight-regular);}
+.type-title {font-family:var(--font-display);font-size:var(--text-title);line-height:var(--leading-body);font-weight:var(--font-weight-regular);}
+.type-label {font-size:var(--text-body);line-height:var(--label-leading);font-weight:var(--font-weight-semibold);}
+.type-body {font-size:var(--text-body);line-height:var(--leading-body);font-weight:var(--font-weight-regular);}
+.type-subtitle {font-size:var(--text-subtitle);line-height:var(--leading-subtitle);font-weight:var(--font-weight-regular);color:var(--muted-foreground);}
+.type-button {font-size:var(--text-body);line-height:var(--leading-subtitle);font-weight:var(--font-weight-medium);}
+.type-chip {font-size:var(--text-chip);line-height:var(--leading-chip);font-weight:var(--font-weight-medium);}
+.type-caption {font-size:var(--text-chip);line-height:var(--leading-chip);font-weight:var(--font-weight-regular);color:var(--muted-foreground);}
+.control-height {height:var(--control-height);}
+.fab-size {width:var(--fab-size);height:var(--fab-size);}
+.status-chip {min-height:var(--chip-height);}
+.filter-chip {min-height:var(--filter-height);}
+.filter-chip-row {scrollbar-width:none;}
+.filter-chip-row::-webkit-scrollbar {display:none;}
+.map-pin {width:var(--pin-size);height:var(--pin-size);border-radius:50% 50% 50% 0;transform:rotate(-45deg);}
+.map-pin svg {transform:rotate(45deg);}
+.map-pin[data-selected="true"] {scale:1.2;outline:3px solid var(--preto);}
+.map-cluster {width:var(--cluster-size);height:var(--cluster-size);}
+.sheet {position:fixed;bottom:0;left:0;right:0;z-index:30;overflow:hidden;transition:height .3s cubic-bezier(.2,.8,.2,1);border-radius:var(--radius-large) var(--radius-large) 0 0;box-shadow:var(--sheet-shadow);}
+.sheet[data-snap="peek"] {height:120px;} .sheet[data-snap="half"] {height:50dvh;} .sheet[data-snap="full"] {height:calc(100dvh - 80px);}
+.sheet[data-placement="static"] {position:absolute;}
+.sheet[data-placement="static"][data-snap="half"] {height:50%;}
+.sheet[data-placement="static"][data-snap="full"] {height:100%;}
+.sheet-handle {width:36px;height:4px;}
+.sheet[data-dragging] {transition:none;}
+@media (prefers-reduced-motion:reduce) {.sheet {transition:none;}}
+.system-modal {width:568px;max-width:calc(100% - 80px);max-height:calc(100dvh - 80px);margin:auto;padding:32px;border-radius:var(--radius-large);border:1px solid var(--border);background:var(--card);color:var(--foreground);}
+.system-modal[data-size="large"] {width:780px;} .system-modal::backdrop {background:color-mix(in srgb,var(--preto) 40%,transparent);}
+@media(max-width:767px) {.system-modal {max-width:100%;width:100%;height:calc(100dvh - 80px);max-height:none;margin:80px 0 0;padding:24px;border-radius:var(--radius-card) var(--radius-card) 0 0;} }
+
+/* Shared marker geometry; colors inherit the consumer's canonical tokens. */
+:root { --marker-stroke:1.5px; --marker-selected-stroke:3px; --marker-selected-scale:1.2; --marker-cluster-border:2px; --marker-cluster-shadow:0 2px 8px color-mix(in srgb,var(--preto) 15%,transparent); }
+.marker-svg { display:block; overflow:visible; width:var(--pin-size); height:44px; transform-origin:50% 100%; }
+.marker-shape { fill:var(--safe); stroke:var(--foreground); stroke-width:var(--marker-stroke); }
+.marker-svg[data-kind="repair_shop"] .marker-shape {fill:var(--shop);}
+.marker-svg[data-kind="unconfirmed"] .marker-shape {fill:var(--unconfirmed);stroke-dasharray:3 2.5;}
+.marker-glyph {color:var(--foreground);}
+.marker-svg[data-selected="true"] {scale:var(--marker-selected-scale);}
+.marker-svg[data-selected="true"] .marker-shape {stroke:var(--preto);stroke-width:var(--marker-selected-stroke);stroke-dasharray:none;}
+.cluster-svg {display:block;width:var(--cluster-size);height:var(--cluster-size);border-radius:var(--radius-pill);box-shadow:var(--marker-cluster-shadow);}
+.cluster-svg circle {fill:var(--preto);stroke:var(--branco);stroke-width:var(--marker-cluster-border);}
+.cluster-svg text {fill:var(--branco);font-family:var(--font-sans);font-size:var(--text-subtitle);font-weight:var(--font-weight-semibold);}
+.theft-area-svg {display:block;overflow:visible;}
+.theft-area-svg polygon {fill:var(--vermelho);stroke:var(--vermelho-forte);stroke-width:1px;}
+.theft-area-svg svg,.theft-area-center {color:var(--vermelho-forte);}
+.cycling-leaflet-icon {background:transparent;border:0;}
+.h-place-skeleton-title {height:var(--text-title);}
+.h-place-skeleton-subtitle {height:var(--text-subtitle);}
